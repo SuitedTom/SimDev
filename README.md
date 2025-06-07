@@ -2,6 +2,17 @@
 
 SimDev is a browser-based simulation game where you manage your own game development company. Make strategic decisions, manage your finances, develop games, and try to become a successful studio!
 
+
+# Working On
+- ability to make dlcs
+- ability to make mmo/online games and manage servers etc
+- ability to sell merch for your game
+- ability to make sequels
+- have competitors and the ability to buy them out
+- an actual endgame
+- etc
+
+
 ## How to Play
 
 The game is primarily played through a command-line interface. Type commands to:
