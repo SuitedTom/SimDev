@@ -10,6 +10,7 @@ SimDev is a browser-based simulation game where you manage your own game develop
 - ability to make sequels
 - have competitors and the ability to buy them out
 - an actual endgame
+- proper audio/music
 - etc
 
 
