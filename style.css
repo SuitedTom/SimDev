@@ -48,7 +48,7 @@ body {
   width: 100%;
   box-sizing: border-box;
   font-family: monospace;
-  max-width: 50;
+  /* max-width: 50; */
 }
 
 .command-input input:focus {
