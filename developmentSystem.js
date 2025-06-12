@@ -12,34 +12,6 @@ const DEVELOPMENT_RISKS = {
   BREAKTHROUGH: { probability: 0.1, impact: 15, description: "Team made a technical breakthrough!" }
 };
 
-const POLISH_PHASES = {
-  MARKETING: { threshold: 0.25, name: 'Marketing Campaign' },
-  OPTIMIZATION: { threshold: 0.50, name: 'Final Optimization' },
-  CERTIFICATION: { threshold: 0.75, name: 'Release Certification' },
-  LAUNCH_PREP: { threshold: 0.90, name: 'Launch Preparation' }
-};
-
-const LAUNCH_WINDOWS = {
-  IMMEDIATE: {
-    name: "Immediate Release",
-    riskFactor: 1.2,
-    costModifier: 0.8,
-    description: "Release as soon as possible. Higher risk but lower costs."
-  },
-  OPTIMAL: {
-    name: "Strategic Release",
-    riskFactor: 1.0,
-    costModifier: 1.0,
-    description: "Wait for the best market conditions. Balanced approach."
-  },
-  DELAYED: {
-    name: "Extended Polish",
-    riskFactor: 0.8,
-    costModifier: 1.2,
-    description: "Take extra time for polish. Lower risk but higher costs."
-  }
-};
-
 const PHASE_SEQUENCE = ['planning', 'development', 'testing', 'release'];
 
 const PHASE_REQUIREMENTS = {
@@ -56,8 +28,35 @@ const PHASE_REQUIREMENTS = {
     transition: ['testingReport', 'optimizationData']
   },
   release: {
-    required: ['marketingStrategy', 'launchWindow', 'finalPolish'],
-    transition: ['releaseStats', 'audienceMetrics']
+    required: [],  
+    transition: []
+  }
+};
+
+const METRIC_CATEGORIES = {
+  technical: {
+    codeQuality: { min: 0, max: 100, weight: 0.3 },
+    bugDensity: { min: 0, max: 100, weight: 0.2 },
+    performance: { min: 0, max: 100, weight: 0.2 },
+    architecture: { min: 0, max: 100, weight: 0.3 }
+  },
+  design: {
+    userExperience: { min: 0, max: 100, weight: 0.25 },
+    gameplayBalance: { min: 0, max: 100, weight: 0.25 },
+    featureCompletion: { min: 0, max: 100, weight: 0.25 },
+    contentQuality: { min: 0, max: 100, weight: 0.25 }
+  },
+  production: {
+    teamVelocity: { min: 0, max: 100, weight: 0.2 },
+    resourceEfficiency: { min: 0, max: 100, weight: 0.2 },
+    milestoneAdherence: { min: 0, max: 100, weight: 0.3 },
+    riskManagement: { min: 0, max: 100, weight: 0.3 }
+  },
+  market: {
+    audienceAlignment: { min: 0, max: 100, weight: 0.3 },
+    competitivePosition: { min: 0, max: 100, weight: 0.2 },
+    marketTiming: { min: 0, max: 100, weight: 0.2 },
+    brandLeverage: { min: 0, max: 100, weight: 0.3 }
   }
 };
 
@@ -67,346 +66,32 @@ function capitalizeFirst(str) {
   return str.charAt(0).toUpperCase() + str.toLowerCase().slice(1);
 }
 
-const QUALITY_IMPACT_WEIGHTS = {
-  BUG_SEVERITY: {
-    critical: 0.4,  // 40% impact per critical bug
-    major: 0.2,     // 20% impact per major bug
-    minor: 0.1      // 10% impact per minor bug
-  },
-  DEVELOPMENT_DECISIONS: {
-    quality_focus: 1.2,   // Quality priority bonus
-    speed_focus: 0.8,     // Speed priority penalty
-    balanced: 1.0,        // Balanced approach
-    polish_time: 0.1      // 10% bonus per week of polish
-  },
-  RUSH_PENALTIES: {
-    no_testing: 0.5,      // 50% penalty for skipping testing
-    minimal_testing: 0.7,  // 30% penalty for minimal testing
-    partial_testing: 0.85  // 15% penalty for incomplete testing
-  }
-};
-
-// Add new scoring category constants after existing constants
-const SCORING_CATEGORIES = {
-  gameDesign: {
-    gameplay: {
-      name: "Gameplay",
-      weight: 0.4,
-      factors: {
-        core_mechanics: 0.4,
-        balance: 0.3,
-        progression: 0.3
-      }
-    },
-    features: {
-      name: "Features",
-      weight: 0.3,
-      factors: {
-        completeness: 0.4,
-        polish: 0.3,
-        variety: 0.3
-      }
-    },
-    innovation: {
-      name: "Innovation",
-      weight: 0.3,
-      factors: {
-        uniqueness: 0.4,
-        market_fit: 0.3,
-        creative_vision: 0.3
-      }
-    }
-  },
-  technicalQuality: {
-    bugs: {
-      name: "Bug Status",
-      weight: 0.4,
-      factors: {
-        severity_ratio: 0.4,
-        fix_rate: 0.3,
-        regression_rate: 0.3
-      }
-    },
-    performance: {
-      name: "Performance",
-      weight: 0.3,
-      factors: {
-        optimization: 0.4,
-        stability: 0.3,
-        resource_usage: 0.3
-      }
-    },
-    polish: {
-      name: "Polish",
-      weight: 0.3,
-      factors: {
-        visual_quality: 0.4,
-        user_interface: 0.3,
-        audio_quality: 0.3
-      }
-    }
-  },
-  playerExperience: {
-    funFactor: {
-      name: "Fun Factor",
-      weight: 0.4,
-      factors: {
-        engagement: 0.4,
-        satisfaction: 0.3,
-        flow: 0.3
-      }
-    },
-    engagement: {
-      name: "Engagement",
-      weight: 0.3,
-      factors: {
-        retention: 0.4,
-        progression: 0.3,
-        motivation: 0.3
-      }
-    },
-    replayability: {
-      name: "Replayability",
-      weight: 0.3,
-      factors: {
-        content_variety: 0.4,
-        branching: 0.3,
-        emergent_gameplay: 0.3
-      }
-    }
-  }
-};
-
-const GENRE_SCORE_WEIGHTS = {
-  rpg: {
-    gameDesign: 0.4,
-    technicalQuality: 0.3,
-    playerExperience: 0.3,
-    expectations: 0.8 // Higher expectations
-  },
-  puzzle: {
-    gameDesign: 0.3,
-    technicalQuality: 0.3,
-    playerExperience: 0.4,
-    expectations: 0.6 // Lower expectations
-  },
-  adventure: {
-    gameDesign: 0.4,
-    technicalQuality: 0.2, 
-    playerExperience: 0.4,
-    expectations: 0.7
-  },
-  simulation: {
-    gameDesign: 0.3,
-    technicalQuality: 0.4,
-    playerExperience: 0.3,
-    expectations: 0.7
-  },
-  sports: {
-    gameDesign: 0.3,
-    technicalQuality: 0.4,
-    playerExperience: 0.3,
-    expectations: 0.75
-  },
-  fighting: {
-    gameDesign: 0.3,
-    technicalQuality: 0.4,
-    playerExperience: 0.3,
-    expectations: 0.8
-  },
-  horror: {
-    gameDesign: 0.4,
-    technicalQuality: 0.3,
-    playerExperience: 0.3,
-    expectations: 0.7
-  },
-  survival: {
-    gameDesign: 0.35,
-    technicalQuality: 0.35,
-    playerExperience: 0.3,
-    expectations: 0.65
-  },
-  racing: {
-    gameDesign: 0.3,
-    technicalQuality: 0.4,
-    playerExperience: 0.3,
-    expectations: 0.75
-  },
-  idle: {
-    gameDesign: 0.3,
-    technicalQuality: 0.3,
-    playerExperience: 0.4,
-    expectations: 0.5 // Lowest expectations
-  }
-};
-
-const SCORE_FEEDBACK = {
-  exceptional: {
-    threshold: 9.5,
-    messages: [
-      "A masterpiece that sets new standards for the genre!",
-      "Revolutionary game design that will influence future titles",
-      "Technical excellence combined with exceptional gameplay",
-      "An instant classic that will be remembered for years"
-    ]
-  },
-  excellent: {
-    threshold: 8.5,
-    messages: [
-      "Outstanding achievement across all aspects",
-      "Hugely impressive execution with minimal flaws",
-      "A must-play title that excels in nearly every way",
-      "Sets a new bar for quality in multiple areas"
-    ]
-  },
-  great: {
-    threshold: 7.5,
-    messages: [
-      "A very strong title with numerous standout features",
-      "High quality execution with only minor issues",
-      "Delivers an engaging and polished experience",
-      "Will certainly please fans of the genre"
-    ]
-  },
-  good: {
-    threshold: 6.5,
-    messages: [
-      "A solid game that achieves its core goals",
-      "Despite some flaws, provides good entertainment",
-      "Competent execution with room for improvement",
-      "Fans of the genre will find plenty to enjoy"
-    ]
-  },
-  average: {
-    threshold: 5.5,
-    messages: [
-      "A decent but unremarkable experience",
-      "Has potential but falls short in key areas",
-      "Functional but lacks distinctive features",
-      "May appeal to genre enthusiasts despite limitations"
-    ]
-  },
-  poor: {
-    threshold: 4.5,
-    messages: [
-      "Significant issues hold back the experience",
-      "Falls short of basic quality expectations",
-      "Needs substantial improvement in multiple areas",
-      "Difficult to recommend in its current state"
-    ]
-  },
-  very_poor: {
-    threshold: 0,
-    messages: [
-      "Major problems throughout the experience",
-      "Fails to deliver on fundamental promises",
-      "Requires extensive work to meet basic standards",
-      "Not recommended in its current form"
-    ]
-  }
-};
-
-// Default audience preferences if none found
-const DEFAULT_AUDIENCE_PREFERENCES = {
-  casual: {
-    preferences: {
-      puzzle: 1.2,
-      idle: 1.2,
-      simulation: 1.1,
-      sports: 1.0,
-      adventure: 0.9,
-      rpg: 0.7,
-      fighting: 0.6,
-      survival: 0.7,
-      racing: 0.9,
-      horror: 0.5
-    }
-  },
-  hardcore: {
-    preferences: {
-      rpg: 1.5,
-      fighting: 1.3,
-      survival: 1.2,
-      racing: 1.1,
-      horror: 1.2,
-      sports: 0.9,
-      simulation: 0.8,
-      puzzle: 0.7,
-      idle: 0.6,
-      adventure: 1.0
-    }
-  },
-  all: {
-    preferences: {
-      puzzle: 1.0,
-      idle: 1.0,
-      simulation: 1.0,
-      sports: 1.0,
-      adventure: 1.0,
-      rpg: 1.0,
-      fighting: 1.0,
-      survival: 1.0,
-      racing: 1.0,
-      horror: 1.0
-    }
-  }
-};
-
-const RANDOM_EVENTS = {
-  positive: [
-    { text: "Team morale is high!", moneyEffect: 0.9, moraleEffect: 5 },
-    { text: "Productive work week!", moneyEffect: 0.95, moraleEffect: 3 },
-    { text: "Team found efficient solution!", moneyEffect: 0.9, moraleEffect: 4 }
-  ],
-  neutral: [
-    { text: "Normal work week", moneyEffect: 1.0, moraleEffect: 0 },
-    { text: "Everything proceeding as usual", moneyEffect: 1.0, moraleEffect: 0 },
-    { text: "Team maintaining steady progress", moneyEffect: 1.0, moraleEffect: 0 }
-  ],
-  negative: [
-    { text: "Minor technical setback", moneyEffect: 1.1, moraleEffect: -3 },
-    { text: "Team hit a roadblock", moneyEffect: 1.15, moraleEffect: -4 },
-    { text: "Some unexpected challenges", moneyEffect: 1.2, moraleEffect: -5 }
-  ]
-};
-
-window.RANDOM_EVENTS = RANDOM_EVENTS;
-
-function getRandomEvent() {
-  // Base event probabilities
-  const eventChances = {
-    positive: 0.2,  // 20% chance
-    neutral: 0.6,   // 60% chance
-    negative: 0.2   // 20% chance
-  };
-
-  const roll = Math.random();
-  let eventType;
-
-  if (roll < eventChances.positive) {
-    eventType = 'positive';
-  } else if (roll < eventChances.positive + eventChances.neutral) {
-    eventType = 'neutral';
-  } else {
-    eventType = 'negative';
-  }
-
-  // Get random event from chosen type
-  const events = RANDOM_EVENTS[eventType];
-  const event = events[Math.floor(Math.random() * events.length)];
-
-  // Add market effect if needed (20% chance)
-  if (Math.random() < 0.2) {
-    event.marketEffect = {
-      type: Math.random() < 0.5 ? 'growth' : 'decline',
-      amount: Math.random() * 0.1  // 0-10% change
+// Add new function to resolve reference
+function updateProjectMetrics(project) {
+  // Initialize metrics if missing
+  if (!project.metrics) {
+    project.metrics = {
+      technical: {},
+      design: {},
+      production: {},
+      market: {}
     };
   }
 
-  return event;
+  // Update technical metrics
+  project.metrics.technical = {
+    codeQuality: Math.floor(Math.random() * 20 + 80),
+    bugDensity: project.bugs > 0 ? Math.min(100, (project.bugs / 50)*100) : 0,
+    performance: Math.floor(Math.random() * 20 + 75),
+    architecture: 85
+  };
+
+  // Return updated metrics for save/load purposes
+  return project.metrics;
 }
 
-window.getRandomEvent = getRandomEvent;
+// Add to exports
+window.updateProjectMetrics = updateProjectMetrics;
 
 function calculateProjectProgress(project) {
   if (!project) return 0;
@@ -437,55 +122,775 @@ function calculateProjectProgress(project) {
       break;
       
     case 'release':
-      // Calculate release preparation progress
-      const requiredDecisions = [
-        !!project.marketingStrategy,
-        !!project.launchWindow,
-        !!project.optimizationFocus
-      ];
-      progress = (requiredDecisions.filter(Boolean).length / 3) * 100;
+      // Progress based on remaining bugs
+      if (project.initialBugs === 0) return 100;
+      const bugsFixed = project.initialBugs - project.bugs;
+      progress = (bugsFixed / project.initialBugs) * 100;
       break;
   }
   
   return Math.min(100, Math.max(0, progress));
 }
 
-function calculateQualityGain(fixedBugs) {
-  const qualityGainFactors = {
-    critical: 2.0,  // Critical bugs have biggest quality impact
-    major: 1.0,     // Major bugs have moderate impact
-    minor: 0.5      // Minor bugs have smallest impact
+function generateDevelopmentReport(gameState, details) {
+  const { progressGain = 0, team = { efficiency: 1 }, event, previousProgress = 0 } = details;
+  const project = gameState.project;
+  
+  outputToDisplay("\n╔════ Development Progress Report ════╗");
+  
+  // Progress Bar Section
+  const progressBar = createProgressBar(project.progress || 0);
+  outputToDisplay(`${progressBar}`);
+  outputToDisplay(`Weekly Progress: +${progressGain.toFixed(1)}%`);
+  outputToDisplay(`Overall: ${Math.floor(previousProgress)}% → ${Math.floor(project.progress)}%`);
+  outputToDisplay("╟──────────────────────────────────╢");
+
+  // Event Section (if any)
+  if (event) {
+    outputToDisplay("Event:");
+    outputToDisplay(`➤ ${event.description}`);
+    outputToDisplay("╟──────────────────────────────────╢");
+  }
+
+  // Team Performance Section
+  outputToDisplay("Team Status:");
+  outputToDisplay(`◆ Efficiency: ${Math.floor(team.efficiency * 100)}%`);
+  outputToDisplay(`◆ Morale: ${Math.round(project.teamMorale)}%`);
+  
+  // Feature Progress Section
+  if (project.planningData?.features) {
+    const features = project.planningData.features;
+    const completedFeatures = Math.floor(features.length * (project.progress / 100));
+    outputToDisplay("\nFeature Progress:");
+    outputToDisplay(`◆ Completed: ${completedFeatures}/${features.length}`);
+    const featureBar = createFeatureProgressBar(completedFeatures, features.length);
+    outputToDisplay(featureBar);
+  }
+  
+  outputToDisplay("╟──────────────────────────────────╢");
+
+  // Quality Metrics Section
+  outputToDisplay("Development Metrics:");
+  const codeQuality = calculateCodeQuality(gameState);
+  const technicalDebt = calculateTechnicalDebt(gameState);
+  outputToDisplay(`◆ Code Quality: ${codeQuality}%`);
+  outputToDisplay(`◆ Technical Debt: ${technicalDebt}%`);
+  
+  // Time Estimation Section
+  const timeRemaining = estimateTimeRemaining(gameState);
+  outputToDisplay("\nProject Timeline:");
+  outputToDisplay(`◆ Remaining Time: ${timeRemaining} weeks`);
+  
+  // Recommendations Section (if needed)
+  if (technicalDebt > 30 || project.teamMorale < 70) {
+    outputToDisplay("\nRecommendations:");
+    if (technicalDebt > 30) {
+      outputToDisplay("! Consider addressing technical debt");
+    }
+    if (project.teamMorale < 70) {
+      outputToDisplay("! Team morale needs attention");
+    }
+  }
+  
+  outputToDisplay("╚════════════════════════════════════╝");
+}
+
+function createProgressBar(progress) {
+  const width = 30;
+  const filled = Math.floor((progress / 100) * width);
+  const bar = "█".repeat(filled) + "░".repeat(width - filled);
+  return `Progress: [${bar}] ${Math.floor(progress)}%`;
+}
+
+function createFeatureProgressBar(completed, total) {
+  const width = 20;
+  const filled = Math.floor((completed / total) * width);
+  const bar = "■".repeat(filled) + "□".repeat(width - filled);
+  return `[${bar}] ${completed}/${total}`;
+}
+
+function calculateCodeQuality(gameState) {
+  const project = gameState.project;
+  // Base quality is 50-90%
+  const baseQuality = 50 + (project.progress / 2.5);
+  // If staff exists, their skills affect quality
+  const staffBonus = gameState.staff.length > 0 ? calculateTeamEfficiency(gameState).efficiency * 10 : 0;
+  return Math.min(100, Math.floor(baseQuality + staffBonus));
+}
+
+function calculateTechnicalDebt(gameState) {
+  const project = gameState.project;
+  // Technical debt increases with progress but can be mitigated by quality focus
+  const baseTD = project.progress / 3;
+  // Quality focus reduces technical debt
+  const qualityModifier = project.priority === 'quality' ? 0.7 : (project.priority === 'speed' ? 1.3 : 1.0);
+  return Math.floor(baseTD * qualityModifier);
+}
+
+function estimateTimeRemaining(gameState) {
+  const project = gameState.project;
+  const remainingProgress = 100 - project.progress;
+  // Calculate weekly progress rate
+  let baseRate = 5; // Solo developer
+  if (gameState.staff.length > 0) {
+    const team = calculateTeamEfficiency(gameState);
+    baseRate = 10 * team.efficiency;
+  }
+  const progressRate = baseRate * (gameState.modifiers.development_speed || 1);
+  
+  // Calculate weeks
+  const remainingWeeks = Math.ceil(remainingProgress / progressRate);
+  return remainingWeeks;
+}
+
+// Add this function to check development events
+function checkDevelopmentEvents(gameState) {
+  const eventProbability = 0.25; // 25% chance of event per week
+  const risk = Math.random();
+
+  if (risk >= (1 - eventProbability)) {
+    return DEVELOPMENT_RISKS.BREAKTHROUGH;
+  } else if (risk <= eventProbability) { 
+    const risks = Object.values(DEVELOPMENT_RISKS).filter(r => r !== DEVELOPMENT_RISKS.BREAKTHROUGH);
+    return risks[Math.floor(Math.random() * risks.length)];
+  }
+  
+  return null;
+}
+
+// Make sure checkDevelopmentEvents is available globally
+window.checkDevelopmentEvents = checkDevelopmentEvents;
+
+function advanceTime(gameState) {
+  const weeklyCost = 100;
+  let randomEvent = getRandomEvent();
+  if (!randomEvent) {
+    randomEvent = {
+      text: "Uneventful week",
+      moneyEffect: 1.0,
+      moraleEffect: 0
+    };
+  }
+  
+  // Handle market effect safely
+  if (randomEvent.marketEffect) {
+    applyMarketEffect(gameState, randomEvent.marketEffect);
+  }
+
+  // Use nullish coalescing for critical properties
+  let costModifier = randomEvent.moneyEffect ?? 1.0;
+  let moraleModifier = randomEvent.moraleEffect ?? 0;
+  const actualCost = weeklyCost * costModifier;
+
+  let report = [
+    "\n=== Weekly Report ===",
+    randomEvent.text,
+    `Financial Changes:`,
+    `- Weekly Costs: $${actualCost.toFixed(2)}`,
+  ];
+
+  if (gameState.staff.length > 0) {
+    const salaries = gameState.totalSalaries;
+    report.push(`- Staff Salaries: $${salaries}`);
+    actualCost += salaries;
+  }
+
+  gameState.moneyAmount -= actualCost;
+  report.push(`- New Balance: $${gameState.moneyAmount.toFixed(2)}`);
+
+  // Project progress
+  if (gameState.project) {
+    // Check if priority is set (required to start development)
+    if (!gameState.project.priority && gameState.project.phase === 'planning') {
+      outputToDisplay("Set development priority before continuing.");
+      outputToDisplay("Use 'priority [quality/balanced/speed]' to set priority.");
+      return;
+    }
+
+    // If priority is set and we're in planning, transition to development
+    if (gameState.project.priority && gameState.project.phase === 'planning') {
+      gameState.project.phase = 'development';
+      gameState.project.status = 'development';
+      gameState.project.progress = 0;
+      gameState.project.phaseProgress = 0;
+      outputToDisplay("\n=== Transitioning to Development Phase ===");
+      outputToDisplay("Development has begun! Weekly progress will now be tracked.");
+      updatePhaseIndicator(gameState.project);
+    }
+
+    // Handle development progress
+    if (gameState.project.phase === 'development') {
+      let previousProgress = gameState.project.progress || 0;
+      
+      // Calculate progress
+      let baseProgress = 5; // Base progress for solo development
+      if (gameState.staff.length > 0) {
+        const team = calculateTeamEfficiency(gameState);
+        baseProgress = 10 * team.efficiency;
+      }
+      
+      // Apply modifiers
+      let progressGain = baseProgress * (gameState.modifiers.development_speed || 1);
+      
+      // Handle risks and events
+      const event = checkDevelopmentEvents(gameState);
+      if (event) {
+        progressGain *= (1 + (event.impact / 100));
+        outputToDisplay(`Development Event: ${event.description}`);
+      }
+
+      // Update progress
+      gameState.project.progress = Math.min(100, previousProgress + progressGain);
+      gameState.project.phaseProgress = Math.min(100, (gameState.project.phaseProgress || 0) + progressGain);
+
+      // Check for milestones
+      checkProductionMilestones(gameState, previousProgress);
+
+      // Generate development report
+      generateDevelopmentReport(gameState, {
+        progressGain,
+        team: { efficiency: gameState.staff.length > 0 ? calculateTeamEfficiency(gameState).efficiency : 1 },
+        event,
+        previousProgress
+      });
+
+      // Check phase completion
+      if (gameState.project.progress >= 100) {
+        completeProductionPhase(gameState);
+      }
+    }
+  }
+
+  // Staff updates
+  if (gameState.staff.length > 0) {
+    processStaff(gameState);
+    report.push(
+      `\nTeam Status:`,
+      `- Team Size: ${gameState.staff.length}`,
+      `- Average Morale: ${calculateAverageMorale(gameState.staff)}%`
+    );
+  }
+
+  gameState.weekNumber++;
+  if (gameState.weekNumber % 4 === 0) {
+    saveGame(gameState, null, true);
+    report.push(`\nAutosave completed.`);
+  }
+
+  // Output the report
+  report.forEach(line => outputToDisplay(line));
+
+  updateStatusDisplay(gameState.companyName, gameState.weekNumber, gameState.moneyAmount);
+  
+  // If market trends exist, update them
+  if (gameState.marketTrends) {
+    Object.keys(gameState.marketTrends).forEach(genre => {
+      gameState.marketTrends[genre].popularity *= (1 + (gameState.marketTrends[genre].growth || 0));
+      // Adjust market saturation
+      gameState.marketTrends[genre].saturation = 
+        Math.min(1, (gameState.marketTrends[genre].saturation || 0) + Math.random() * 0.1);
+    });
+  }
+}
+
+function processStaff(gameState) {
+  gameState.totalSalaries = gameState.staff.reduce((total, staff) => total + staff.salary, 0);
+  const actualCost = 100 * (1 + (gameState.staff.length * 0.1));
+  gameState.moneyAmount -= actualCost;
+  
+  // Update staff experience and mood
+  gameState.staff.forEach(staff => {
+    staff.daysWorked++;
+    staff.experience += 1;
+    
+    // Random mood changes
+    if (Math.random() < 0.2) {
+      staff.mood += Math.floor(Math.random() * 11) - 5;
+      staff.mood = Math.max(0, Math.min(100, staff.mood));
+    }
+  });
+  
+  // Apply team effectiveness to project progress
+  if (gameState.project && gameState.project.status === 'development') {
+    const teamEffectiveness = calculateTeamEffectiveness(gameState);
+    gameState.project.phaseProgress += 25 * teamEffectiveness;
+  }
+}
+
+function calculateTeamEffectiveness(gameState) {
+  const staffCount = gameState.staff.length;
+  const totalExperience = gameState.staff.reduce((total, staff) => total + staff.experience, 0);
+  const averageMood = gameState.staff.reduce((total, staff) => total + staff.mood, 0) / staffCount;
+  
+  return (totalExperience / (staffCount * 100)) * (averageMood / 100);
+}
+
+function advanceToNextPhase(gameState) {
+  const phases = ['planning', 'development', 'testing', 'release'];
+  const currentIndex = phases.indexOf(gameState.project.phase);
+  
+  if (currentIndex < phases.length - 1) {
+    gameState.project.phase = phases[currentIndex + 1];
+    gameState.project.phaseProgress = 0;
+    
+    outputToDisplay(`\n=== Phase Complete! ===`);
+    outputToDisplay(`Advancing to ${gameState.project.phase} phase...`);
+    
+    switch (gameState.project.phase) {
+      case 'development':
+        outputToDisplay("Production phase begins! Development will progress automatically.");
+        break;
+      case 'testing':
+        outputToDisplay("Testing phase begins! Use 'test' to look for bugs and 'fix' to resolve them.");
+        break;
+      case 'release':
+        outputToDisplay("Polish phase begins! Set your launch window with 'launch [window]'");
+        break;
+    }
+    
+    updatePhaseIndicator(gameState.project);
+  }
+}
+
+function updatePhaseIndicator(project) {
+  const phaseIndicator = document.getElementById('phase-indicator');
+  if (!project) {
+    phaseIndicator.classList.add('hidden');
+    return;
+  }
+
+  phaseIndicator.classList.remove('hidden');
+  const phases = ['planning', 'development', 'testing', 'release'];
+  const currentPhaseIndex = phases.indexOf(project.phase);
+
+  phases.forEach((phase, index) => {
+    const phaseElement = phaseIndicator.querySelector(`[data-phase="${phase}"]`);
+    phaseElement.classList.remove('active', 'completed');
+    
+    if (index < currentPhaseIndex) {
+      phaseElement.classList.add('completed');
+    } else if (index === currentPhaseIndex) {
+      phaseElement.classList.add('active');
+    }
+  });
+}
+
+function validatePhaseTransition(fromPhase, toPhase, project) {
+  if (!project) return { valid: false, reason: 'No active project' };
+  
+  // Check if transition is valid in sequence
+  const fromIndex = PHASE_SEQUENCE.indexOf(fromPhase);
+  const toIndex = PHASE_SEQUENCE.indexOf(toPhase);
+  if (toIndex !== fromIndex + 1) {
+    return { valid: false, reason: 'Invalid phase sequence' };
+  }
+
+  // Check required data for current phase completion
+  const requirements = PHASE_REQUIREMENTS[fromPhase].required;
+  const missingData = requirements.filter(req => !project[req]);
+  
+  if (missingData.length > 0) {
+    return {
+      valid: false,
+      reason: 'Incomplete phase requirements',
+      missing: missingData
+    };
+  }
+
+  // Verify transition data is prepared
+  const transitionData = PHASE_REQUIREMENTS[fromPhase].transition;
+  const missingTransition = transitionData.filter(data => !project[data]);
+  
+  if (missingTransition.length > 0) {
+    return {
+      valid: false,
+      reason: 'Missing transition data',
+      missing: missingTransition
+    };
+  }
+
+  return { valid: true };
+}
+
+function transitionToPhase(gameState, newPhase) {
+  let project = gameState.project;
+  if (!project) return false;
+
+  const currentPhase = project.phase;
+  const validation = validatePhaseTransition(currentPhase, newPhase, project);
+
+  if (!validation.valid) {
+    outputToDisplay(`Cannot transition to ${newPhase}: ${validation.reason}`);
+    if (validation.missing) {
+      outputToDisplay("Missing requirements:");
+      validation.missing.forEach(item => outputToDisplay(`- ${formatRequirement(item)}`));
+    }
+    return false;
+  }
+
+  // Store previous phase data
+  project.phaseHistory = project.phaseHistory || {};
+  project.phaseHistory[currentPhase] = {
+    completedAt: gameState.weekNumber,
+    metrics: collectPhaseMetrics(project, currentPhase),
+    decisions: project.decisions ? [...project.decisions] : []
   };
 
-  let totalGain = 0;
-  Object.entries(fixedBugs).forEach(([severity, count]) => {
-    totalGain += count * qualityGainFactors[severity];
-  });
+  // Initialize new phase
+  project.phase = newPhase;
+  project.phaseProgress = 0;
+  
+  // Set up phase-specific data
+  project = initializePhaseData(project, newPhase);
 
-  // Cap the maximum quality gain per session
-  return Math.min(10, totalGain);
+  outputToDisplay(`\n=== Transitioning to ${formatPhaseName(newPhase)} Phase ===`);
+  displayPhaseObjectives(newPhase);
+  
+  // Save game state after transition
+  saveGame(gameState, null, true);
+  
+  return true;
+}
+
+function initializePhaseData(project, phase) {
+  switch (phase) {
+    case 'planning':
+      project = initializePlanningPhase(project);
+      break;
+    case 'development':
+      project = initializeDevelopmentPhase(project);
+      break;
+    case 'testing':
+      project = initializeTestingPhase(project);
+      break;
+    case 'release':
+      project = initializeReleasePhase(project);
+      break;
+  }
+  return project;
+}
+
+function initializePlanningPhase(project) {
+  return {
+    ...project,
+    planningData: {
+      features: [],
+      assignedStaff: [],
+      resourceAllocation: {
+        coding: 0,
+        design: 0,
+        testing: 0
+      },
+      milestones: [],
+      scope: {
+        minimumViable: false,
+        plannedFeatures: [],
+        stretchGoals: []
+      },
+      estimates: {
+        timeRequired: 0,
+        costEstimate: 0,
+        staffingNeeds: 0
+      },
+      decisions: []
+    }
+  };
+}
+
+function updateProjectPlan(project, decision) {
+  let planningData = project.planningData || {};
+  const impact = calculateDecisionImpact(decision);
+  
+  switch(decision.type) {
+    case 'feature':
+      planningData.features.push({
+        name: decision.feature,
+        complexity: impact.complexity,
+        timeEstimate: impact.time,
+        costEstimate: impact.cost
+      });
+      break;
+      
+    case 'staff':
+      planningData.assignedStaff.push({
+        id: decision.staffId,
+        role: decision.role,
+        allocation: decision.allocation
+      });
+      break;
+      
+    case 'resource':
+      planningData.resourceAllocation[decision.resource] = decision.amount;
+      break;
+      
+    case 'scope':
+      planningData.scope = {
+        ...planningData.scope,
+        ...decision.scope
+      };
+      break;
+      
+    case 'milestone':
+      planningData.milestones.push({
+        name: decision.name,
+        week: decision.week,
+        goals: decision.goals
+      });
+      break;
+  }
+  
+  // Recalculate project estimates
+  planningData.estimates = calculateUpdatedEstimates(planningData);
+  
+  // Record decision
+  planningData.decisions.push({
+    type: decision.type,
+    timestamp: new Date(),
+    details: decision
+  });
+  
+  return { ...project, planningData };
+}
+
+function calculateDecisionImpact(decision) {
+  const baseImpacts = {
+    feature: {
+      small: { complexity: 1, time: 1, cost: 1000 },
+      medium: { complexity: 2, time: 2, cost: 2000 },
+      large: { complexity: 3, time: 4, cost: 4000 }
+    }
+  };
+  
+  switch(decision.type) {
+    case 'feature':
+      const size = decision.size || 'medium';
+      return baseImpacts.feature[size];
+      
+    case 'staff':
+      return {
+        productivity: 1 + (decision.allocation / 100),
+        cost: decision.allocation * 100
+      };
+      
+    default:
+      return {
+        complexity: 1,
+        time: 1,
+        cost: 1000
+      };
+  }
+}
+
+function calculateUpdatedEstimates(planningData) {
+  const baseEstimates = {
+    timeRequired: 0,
+    costEstimate: 0,
+    staffingNeeds: 0
+  };
+  
+  // Sum up feature requirements
+  planningData.features.forEach(feature => {
+    baseEstimates.timeRequired += feature.timeEstimate;
+    baseEstimates.costEstimate += feature.costEstimate;
+    baseEstimates.staffingNeeds += Math.ceil(feature.complexity / 2);
+  });
+  
+  // Adjust for staff assignments
+  if (planningData.assignedStaff.length > 0) {
+    const staffEfficiency = calculateStaffEfficiency(planningData.assignedStaff);
+    baseEstimates.timeRequired = Math.ceil(baseEstimates.timeRequired / staffEfficiency);
+  }
+  
+  // Adjust for resource allocation
+  const resourceEfficiency = calculateResourceEfficiency(planningData.resourceAllocation);
+  baseEstimates.timeRequired = Math.ceil(baseEstimates.timeRequired * resourceEfficiency);
+  
+  return baseEstimates;
+}
+
+function displayPlanningStatus(project) {
+  if (!project || !project.planningData) {
+    outputToDisplay("No active project in planning phase.");
+    return;
+  }
+  
+  outputToDisplay("\n=== Project Planning Status ===");
+  outputToDisplay(`Project: ${project.name}`);
+  outputToDisplay(`Genre: ${project.genre} (${project.subgenre})`);
+  
+  // Feature List
+  outputToDisplay("\nPlanned Features:");
+  if (project.planningData.features.length === 0) {
+    outputToDisplay("No features planned yet");
+  } else {
+    project.planningData.features.forEach(feature => {
+      outputToDisplay(`- ${feature.name} (Complexity: ${feature.complexity})`);
+      outputToDisplay(`  Time: ${feature.timeEstimate} weeks | Cost: $${feature.costEstimate}`);
+    });
+  }
+  
+  // Team Assignments
+  outputToDisplay("\nTeam Assignments:");
+  if (project.planningData.assignedStaff.length === 0) {
+    outputToDisplay("No staff assigned yet");
+  } else {
+    project.planningData.assignedStaff.forEach(assignment => {
+      outputToDisplay(`- ${assignment.role}: ${assignment.allocation}% allocated`);
+    });
+  }
+  
+  // Resource Allocation
+  outputToDisplay("\nResource Allocation:");
+  Object.entries(project.planningData.resourceAllocation).forEach(([resource, amount]) => {
+    outputToDisplay(`${resource}: ${amount}%`);
+  });
+  
+  // Project Estimates
+  const estimates = project.planningData.estimates;
+  outputToDisplay("\nCurrent Estimates:");
+  outputToDisplay(`Development Time: ${estimates.timeRequired} weeks`);
+  outputToDisplay(`Budget Required: $${estimates.costEstimate}`);
+  outputToDisplay(`Recommended Staff: ${estimates.staffingNeeds} developers`);
+  
+  // Milestones
+  outputToDisplay("\nPlanned Milestones:");
+  if (project.planningData.milestones.length === 0) {
+    outputToDisplay("No milestones set");
+  } else {
+    project.planningData.milestones.forEach(milestone => {
+      outputToDisplay(`- Week ${milestone.week}: ${milestone.name}`);
+    });
+  }
+  
+  // Next Steps
+  outputToDisplay("\nAvailable Actions:");
+  outputToDisplay("- feature add [name] [size] - Add new feature");
+  outputToDisplay("- assign [staff] [role] [allocation] - Assign team member");
+  outputToDisplay("- allocate [resource] [amount] - Adjust resource allocation");
+  outputToDisplay("- milestone add [week] [name] - Set project milestone");
+  outputToDisplay("- complete planning - Finish planning phase");
+}
+
+function calculateTeamEfficiency(gameState) {
+  if (!gameState.staff || gameState.staff.length === 0) {
+    return { 
+      efficiency: 1,  
+      factors: { 
+        size: 1, 
+        experience: 1, 
+        morale: 1 
+      } 
+    };
+  }
+
+  let factors = {
+    size: Math.min(1.5, 1 + (gameState.staff.length * 0.1)),
+    experience: calculateTeamExperience(gameState.staff),
+    morale: (gameState.project?.teamMorale || 100) / 100
+  };
+
+  let efficiency = Object.values(factors).reduce((a, b) => a * b, 1);
+  return { efficiency, factors };
+}
+
+function calculateTeamExperience(staff) {
+  if (!staff || staff.length === 0) return 1;
+  const avgExperience = staff.reduce((sum, member) => sum + member.experience, 0) / staff.length;
+  return Math.min(1.5, 1 + (avgExperience / 365));
+}
+
+function updateTeamMorale(gameState, change) {
+  gameState.project.teamMorale = Math.max(0, Math.min(100, gameState.project.teamMorale + change));
+  
+  // Apply morale effects to staff
+  if (gameState.staff) {
+    gameState.staff.forEach(staff => {
+      staff.mood = Math.max(0, Math.min(100, staff.mood + (change / 2)));
+    });
+  }
+}
+
+function handlePolishPhase(gameState, command) {
+  if (!validatePhase(gameState, 'release')) return false;
+  
+  if (command === 'fix') {
+    handleBugFixing(gameState);
+  } else if (command === 'release') {
+    handleReleaseCommand(gameState);
+  } else {
+    displayPolishOptions(gameState);
+  }
+  return true;
+}
+
+function displayPolishOptions(gameState) {
+  outputToDisplay("\n=== Final Polish Phase ===");
+  
+  if (gameState.project.bugs > 0) {
+    const severity = gameState.project.testingMetrics.bugSeverity;
+    outputToDisplay("Remaining Bugs:");
+    outputToDisplay(`Critical: ${severity.critical}`);
+    outputToDisplay(`Major: ${severity.major}`);
+    outputToDisplay(`Minor: ${severity.minor}`);
+    outputToDisplay("\nAvailable Commands:");
+    outputToDisplay("- 'fix bugs' - Continue fixing issues");
+    outputToDisplay("- 'release' - Launch with current bug status");
+  } else {
+    outputToDisplay("\nAll bugs fixed! Ready for release.");
+    outputToDisplay("Use 'release' to launch your game")
+  }
+}
+
+function updatePolishProgress(gameState) {
+  const project = gameState.project;
+  if (!project || project.phase !== 'release') {
+    return;
+  }
+
+  // Progress is now based solely on bug status
+  const hasUnfixedBugs = project.bugs > 0;
+  if (hasUnfixedBugs) {
+    outputToDisplay("\n=== Polish Phase ===");
+    outputToDisplay("Bugs remaining: " + project.bugs);
+    const severity = project.testingMetrics.bugSeverity;
+    outputToDisplay("Critical: " + severity.critical);
+    outputToDisplay("Major: " + severity.major);
+    outputToDisplay("Minor: " + severity.minor);
+    outputToDisplay("\nOptions:");
+    outputToDisplay("- 'fix bugs' to continue fixing bugs");
+    outputToDisplay("- 'release' to release with current bugs");
+    outputToDisplay("\nNote: Releasing with bugs will impact:");
+    outputToDisplay("- Game quality and reviews");
+    outputToDisplay("- Sales potential");
+    outputToDisplay("- Company reputation");
+  } else {
+    outputToDisplay("\n All bugs fixed!");
+    outputToDisplay("Game is ready for release. Use 'release' command to launch.");
+  }
+}
+
+function isReadyForRelease(project) {
+  return project?.phase === 'release';
 }
 
 function handleReleaseCommand(gameState) {
-  const project = gameState.project;
-  
-  if (!project || project.phase !== 'release') {
-    outputToDisplay("Not ready for release yet!");
+  if (!isReadyForRelease(gameState.project)) {
+    outputToDisplay("Project not ready for release!");
     return;
   }
 
   // Show warning if there are remaining bugs
-  if (project.bugs > 0) {
-    const severity = project.testingMetrics.bugSeverity;
+  if (gameState.project.bugs > 0) {
+    const severity = gameState.project.testingMetrics.bugSeverity;
     outputToDisplay("\n=== Release Warning ===");
     outputToDisplay("There are still unfixed bugs in the project:");
     outputToDisplay(`- Critical: ${severity.critical}`);
     outputToDisplay(`- Major: ${severity.major}`);
     outputToDisplay(`- Minor: ${severity.minor}`);
     outputToDisplay("\nReleasing with bugs will impact:");
-    outputToDisplay("- Game quality and reviews");
+    outputToDisplay("- Final game quality");
+    outputToDisplay("- Review scores");
     outputToDisplay("- Sales potential");
-    outputToDisplay("- Company reputation");
     outputToDisplay("\nType 'release confirm' to release anyway, or continue fixing bugs.");
     return;
   }
@@ -503,7 +908,10 @@ function proceedWithRelease(gameState) {
     // Set default values if missing
     gameState.project.targetAudience = gameState.project.targetAudience || 'all';
     gameState.project.marketingStrategy = gameState.project.marketingStrategy || 'balanced';
-
+    // Ensure budget is set for revenue calculation
+    if (!gameState.project.budget || isNaN(gameState.project.budget)) {
+      gameState.project.budget = 10000;
+    }
     // Initialize missing metrics if needed
     if (!gameState.project.testingMetrics) {
       gameState.project.testingMetrics = {
@@ -517,7 +925,6 @@ function proceedWithRelease(gameState) {
         playtestScore: 70 // Default playtest score
       };
     }
-
     // Ensure reputation data exists
     if (!gameState.reputation) {
       gameState.reputation = {
@@ -528,22 +935,21 @@ function proceedWithRelease(gameState) {
         marketPresence: 0
       };
     }
-
+    // --- NEW: Ensure metrics are up to date for reviews ---
+    if (typeof updateProjectMetrics === 'function') {
+      gameState.project.metrics = updateProjectMetrics(gameState.project);
+    }
     // Calculate final metrics
     const finalQuality = calculateFinalQuality(gameState);
     const releaseStats = calculateReleaseStats(gameState, finalQuality);
-    
     if (!releaseStats) {
       throw new Error("Failed to calculate release statistics");
     }
-
     // Calculate bug impact
     const bugImpact = calculateBugImpact(gameState.project);
-    
     // Apply bug impacts with validation
     releaseStats.successScore = Math.max(0, releaseStats.successScore - (bugImpact?.scoreReduction || 0));
     releaseStats.revenue = Math.floor(releaseStats.revenue * (1 - (bugImpact?.revenueLoss || 0)));
-
     // Create completed game record
     const completedGame = {
       name: gameState.project.name || "Untitled Game",
@@ -554,6 +960,8 @@ function proceedWithRelease(gameState) {
       quality: finalQuality,
       successScore: releaseStats.successScore,
       revenue: releaseStats.revenue,
+      budget: gameState.project.budget, // Ensure budget is saved for history
+      metrics: gameState.project.metrics, // <-- Add metrics for reviews
       date: gameState.weekNumber,
       marketingStrategy: gameState.project.marketingStrategy,
       targetAudience: gameState.project.targetAudience || 'all',
@@ -620,122 +1028,431 @@ function proceedWithRelease(gameState) {
   }
 }
 
-function handleBugFixing(gameState) {
-  const project = gameState.project;
+function displayReleaseResults(game, stats, bugImpact) {
+  outputToDisplay("\n=== Game Release Results ===");
+  outputToDisplay(`Title: ${game.name}`);
+  outputToDisplay(`Genre: ${game.genre} (${game.subgenre})`);
+  outputToDisplay(`Development Time: ${game.developmentTime} weeks`);
   
-  if (!project.bugs || project.bugs <= 0) {
-    outputToDisplay("No known bugs to fix!");
-    return;
+  outputToDisplay("\nQuality Metrics:");
+  outputToDisplay(`Base Quality: ${game.quality}%`);
+  
+  // Show bug impact if any
+  if (game.bugs.total > 0) {
+    outputToDisplay("\nBug Impact:");
+    outputToDisplay(`Total Bugs at Release: ${game.bugs.total}`);
+    outputToDisplay(`- Critical: ${game.bugs.severity.critical}`);
+    outputToDisplay(`- Major: ${game.bugs.severity.major}`);
+    outputToDisplay(`- Minor: ${game.bugs.severity.minor}`);
+    outputToDisplay(`Quality Reduction: -${Math.round(bugImpact.scoreReduction)} points`);
+  }
+  
+  outputToDisplay("\nFinal Results:");
+  outputToDisplay(`Success Score: ${stats.successScore}/100`);
+  outputToDisplay(`Revenue: $${stats.revenue}`);
+  if (bugImpact?.revenueLoss > 0) {
+    outputToDisplay(`Revenue Loss from Bugs: -${Math.round(bugImpact.revenueLoss * 100)}%`);
+  }
+  
+  outputToDisplay("\nAudience Reception:");
+  Object.entries(stats.reception).forEach(([audience, score]) => {
+    outputToDisplay(`${formatAudienceName(audience)}: ${score}/100`);
+  });
+
+  // Show special achievements or warnings
+  if (stats.successScore >= 90) {
+    outputToDisplay("\nSpecial Achievement: Masterpiece! ");
+  } else if (stats.successScore >= 80) {
+    outputToDisplay("\nSpecial Achievement: Critical Success! ");
+  } else if (game.bugs.total > 0) {
+    outputToDisplay("\nWarning: Game released with known issues!");
+    outputToDisplay("This may affect long-term reputation.");
   }
 
-  // Initialize bug severity if not set
-  if (!project.testingMetrics.bugSeverity) {
-    project.testingMetrics.bugSeverity = {
-      critical: Math.floor(project.bugs * 0.2),
-      major: Math.floor(project.bugs * 0.3),
-      minor: Math.ceil(project.bugs * 0.5)
+  // Show future outlook
+  outputToDisplay("\nMarket Outlook:");
+  if (game.bugs.total === 0) {
+    outputToDisplay("- Strong foundation for future projects");
+    outputToDisplay("- Positive impact on company reputation");
+  } else {
+    outputToDisplay("- Bug fixes may be required post-release");
+    outputToDisplay("- Consider quality focus for next project");
+  }
+}
+
+function formatCategoryName(category) {
+  return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function formatMetricName(metric) {
+  return metric
+    .split(/(?=[A-Z])/)
+    .join(' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatTrendName(trend) {
+  return trend
+    .split(/(?=[A-Z])/)
+    .join(' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/_/g, ' ');
+}
+
+function formatTrendIndicator(change) {
+  if (change > 0) return `↑ +${change}%`;
+  if (change < 0) return `↓ ${Math.abs(change)}%`;
+  return '→ 0%';
+}
+
+function validatePhase(gameState, requiredPhase) {
+  if (!gameState.project) {
+    outputToDisplay("No active project.");
+    return false;
+  }
+  
+  // Handle 'polish' as an alias for 'release' phase
+  const currentPhase = gameState.project.phase;
+  if (requiredPhase === 'polish') {
+    requiredPhase = 'release';
+  }
+  
+  if (currentPhase !== requiredPhase) {
+    outputToDisplay(`This command can only be used during the ${requiredPhase} phase.`);
+    return false;
+  }
+  return true;
+}
+
+function calculateFinalQuality(gameState) {
+  if (!gameState?.project) return 0;
+
+  let quality = gameState.project.quality || 0;
+
+  // Base quality modifications
+  const priority = gameState.project.priority || 'balanced';
+  switch(priority) {
+    case 'quality':
+      quality *= 1.2;
+      break;
+    case 'speed':
+      quality *= 0.8;
+      break;
+  }
+
+  // Team effects
+  const teamEfficiency = calculateTeamEfficiency(gameState)?.efficiency || 1;
+  quality *= (0.8 + (teamEfficiency * 0.4));
+
+  // Technology effects
+  quality *= (gameState.modifiers?.quality || 1);
+
+  // Account for bugs
+  if (gameState.project.bugs > 0) {
+    const bugPenalty = Math.min(0.5, gameState.project.bugs * 0.02);
+    quality *= (1 - bugPenalty);
+  }
+
+  return Math.min(100, Math.max(0, Math.round(quality)));
+}
+
+function calculateAudienceReception(successScore, project, gameState) {
+  const reception = {
+    casual: 0,
+    hardcore: 0,
+    critics: 0
+  };
+
+  if (!project || typeof successScore !== 'number') {
+    console.error('Invalid data for reception calculation:', { project, successScore });
+    return reception;
+  }
+
+  // Define default preferences as fallback
+  const DEFAULT_PREFERENCES = {
+    casual: { [project.genre.toLowerCase()]: 1.0 },
+    hardcore: { [project.genre.toLowerCase()]: 1.0 },
+    critics: { [project.genre.toLowerCase()]: 1.0 },
+    all: { [project.genre.toLowerCase()]: 1.0 }
+  };
+
+  try {
+    const targetAudience = project.targetAudience || 'all';
+    const baseScore = successScore * 0.8;
+
+    // Get audience preferences with robust fallback chain
+    let targetPreferences;
+    
+    if (window.AUDIENCE_SEGMENTS && window.AUDIENCE_SEGMENTS[targetAudience] && 
+        window.AUDIENCE_SEGMENTS[targetAudience].preferences) {
+      targetPreferences = window.AUDIENCE_SEGMENTS[targetAudience].preferences;
+    } else if (window.AUDIENCE_SEGMENTS && window.AUDIENCE_SEGMENTS.all && 
+              window.AUDIENCE_SEGMENTS.all.preferences) {
+      targetPreferences = window.AUDIENCE_SEGMENTS.all.preferences;
+    } else {
+      targetPreferences = DEFAULT_PREFERENCES[targetAudience] || DEFAULT_PREFERENCES.all;
+    }
+
+    const genreMultiplier = targetPreferences[project.genre.toLowerCase()] || 1.0;
+
+    // Apply balanced reception with safeguards
+    reception.casual = Math.min(100, baseScore * 1.0 * genreMultiplier);
+    reception.hardcore = Math.min(100, baseScore * 1.0 * genreMultiplier);
+    reception.critics = Math.min(100, baseScore * 1.0 * genreMultiplier);
+
+    // Apply reputation effects if available
+    if (gameState && gameState.reputation) {
+      Object.keys(reception).forEach(audience => {
+        if (gameState.reputation[audience]) {
+          const loyalty = gameState.reputation[audience].loyalty || 0.5;
+          reception[audience] *= (0.9 + (loyalty * 0.2));
+          reception[audience] = Math.min(100, Math.round(reception[audience]));
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error in audience reception calculation:', error);
+    // Provide safe default values
+    Object.keys(reception).forEach(key => {
+      reception[key] = Math.round(successScore * 0.8);
+    });
+  }
+
+  // Ensure all values are valid numbers
+  Object.keys(reception).forEach(key => {
+    reception[key] = Math.min(100, Math.max(0, Math.round(reception[key] || 0)));
+  });
+
+  return reception;
+}
+
+function calculateReleaseStats(gameState, finalQuality) {
+  return {
+    successScore: finalQuality,
+    revenue: Math.floor(finalQuality * 10000),
+    reception: calculateAudienceReception(finalQuality, gameState.project, gameState)
+  };
+}
+
+function calculateBugImpact(project) {
+  const severity = project.testingMetrics.bugSeverity;
+  const impact = {
+    scoreReduction: 0,
+    revenueLoss: 0,
+    reputationDamage: 0
+  };
+
+  // Calculate impact based on bug severity
+  if (severity.critical > 0) {
+    impact.scoreReduction += severity.critical * 5;  // -5 points per critical bug
+    impact.revenueLoss += severity.critical * 0.05;  // -5% revenue per critical bug
+    impact.reputationDamage += severity.critical * 0.1;  // -10% reputation per critical bug
+  }
+
+  if (severity.major > 0) {
+    impact.scoreReduction += severity.major * 2;  // -2 points per major bug
+    impact.revenueLoss += severity.major * 0.02;  // -2% revenue per major bug
+    impact.reputationDamage += severity.major * 0.05;  // -5% reputation per major bug
+  }
+
+  if (severity.minor > 0) {
+    impact.scoreReduction += severity.minor * 0.5;  // -0.5 points per minor bug
+    impact.revenueLoss += severity.minor * 0.01;  // -1% revenue per minor bug
+    impact.reputationDamage += severity.minor * 0.01;  // -1% reputation per minor bug
+  }
+
+  // Cap the impacts at reasonable maximums
+  impact.scoreReduction = Math.min(50, impact.scoreReduction);  // Max 50 point reduction
+  impact.revenueLoss = Math.min(0.75, impact.revenueLoss);     // Max 75% revenue loss
+  impact.reputationDamage = Math.min(0.5, impact.reputationDamage);  // Max 50% reputation loss
+
+  return impact;
+}
+
+function checkPhaseCompletion(gameState) {
+  const project = gameState.project;
+  if (!project) return false;
+
+  const phase = project.phase;
+  const requirements = PHASE_REQUIREMENTS[phase]?.required || [];
+  
+  // Check all required fields have values
+  const missing = requirements.filter(req => {
+    const value = project[req] || project.planningData?.[req];
+    return !value || (Array.isArray(value) && value.length === 0);
+  });
+  
+  return missing.length === 0;
+}
+
+const RANDOM_EVENTS = {
+  positive: [],
+  neutral: [],
+  negative: []
+};
+window.RANDOM_EVENTS = RANDOM_EVENTS;
+
+function getRandomEvent() {
+  // Base event probabilities
+  const eventChances = {
+    positive: 0.2,  // 20% chance
+    neutral: 0.6,   // 60% chance
+    negative: 0.2   // 20% chance
+  };
+
+  const roll = Math.random();
+  let eventType;
+
+  if (roll < eventChances.positive) {
+    eventType = 'positive';
+  } else if (roll < eventChances.positive + eventChances.neutral) {
+    eventType = 'neutral';
+  } else {
+    eventType = 'negative';
+  }
+
+  // Get random event from chosen type
+  let events = RANDOM_EVENTS[eventType];
+  if (!events || events.length === 0) {
+    console.warn(`No events for ${eventType}, using neutral`);
+    events = RANDOM_EVENTS.neutral || []; 
+  }
+
+  // Ensure event is defined with default values to prevent undefined errors
+  const event = events[Math.floor(Math.random() * events.length)] || {
+    text: "Uneventful week",
+    moneyEffect: 1.0,
+    moraleEffect: 0
+  };
+
+  // Add market effect if needed (20% chance)
+  if (Math.random() < 0.2) {
+    event.marketEffect = {
+      type: Math.random() < 0.5 ? 'growth' : 'decline',
+      amount: Math.random() * 0.1  // 0-10% change
     };
   }
 
-  // Calculate fix effectiveness
-  const baseEffectiveness = 0.4;
-  const teamBonus = Math.max(0.2, calculateTeamEfficiency(gameState)?.efficiency || 0.2);
-  const fixEffectiveness = baseEffectiveness * teamBonus * (gameState.modifiers.testing_effectiveness || 1);
-
-  // Calculate bugs fixed with guaranteed minimums
-  const fixedBugs = {
-    critical: Math.max(1, Math.floor(Math.min(project.testingMetrics.bugSeverity.critical, project.testingMetrics.bugSeverity.critical * fixEffectiveness))),
-    major: Math.max(1, Math.floor(Math.min(project.testingMetrics.bugSeverity.major, project.testingMetrics.bugSeverity.major * fixEffectiveness * 0.8))),
-    minor: Math.max(1, Math.floor(Math.min(project.testingMetrics.bugSeverity.minor, project.testingMetrics.bugSeverity.minor * fixEffectiveness * 0.6)))
-  };
-
-  // Ensure we don't fix more bugs than exist
-  fixedBugs.critical = Math.min(fixedBugs.critical, project.testingMetrics.bugSeverity.critical);
-  fixedBugs.major = Math.min(fixedBugs.major, project.testingMetrics.bugSeverity.major);
-  fixedBugs.minor = Math.min(fixedBugs.minor, project.testingMetrics.bugSeverity.minor);
-
-  // Update bug counts
-  const totalFixed = fixedBugs.critical + fixedBugs.major + fixedBugs.minor;
-  project.bugs = Math.max(0, project.bugs - totalFixed);
-  
-  // Update severity counts
-  project.testingMetrics.bugSeverity.critical -= fixedBugs.critical;
-  project.testingMetrics.bugSeverity.major -= fixedBugs.major;
-  project.testingMetrics.bugSeverity.minor -= fixedBugs.minor;
-
-  // Update metrics
-  if (!project.testingMetrics.bugsFixed) {
-    project.testingMetrics.bugsFixed = 0;
-  }
-  project.testingMetrics.bugsFixed += totalFixed;
-
-  // Calculate quality improvement
-  const qualityGain = calculateQualityGain(fixedBugs);
-  project.quality = Math.min(100, (project.quality || 0) + qualityGain);
-
-  if (!project.initialBugs) {
-    project.initialBugs = project.bugs + totalFixed;
-  }
-  const fixProgress = ((project.initialBugs - project.bugs) / project.initialBugs) * 100;
-
-  // Display formatted results
-  outputToDisplay("\n╔═══════ Bug Fixing Session ═══════╗");
-  
-  // Progress Section
-  outputToDisplay(`Total Bugs Fixed: ${totalFixed}`);
-  const progressBar = createProgressBar(fixProgress);
-  outputToDisplay(progressBar);
-  outputToDisplay(`Overall Progress: ${fixProgress.toFixed(1)}%`);
-  
-  // Results Breakdown
-  outputToDisplay("\n──── Fixed This Session ────");
-  outputToDisplay(`Critical: ${fixedBugs.critical} ${renderBugIcon(fixedBugs.critical, '🔴')}`);
-  outputToDisplay(`Major: ${fixedBugs.major} ${renderBugIcon(fixedBugs.major, '🟡')}`);
-  outputToDisplay(`Minor: ${fixedBugs.minor} ${renderBugIcon(fixedBugs.minor, '🟢')}`);
-  
-  outputToDisplay("\n──── Remaining Issues ────");
-  outputToDisplay(`Critical: ${project.testingMetrics.bugSeverity.critical} ${renderBugIcon(project.testingMetrics.bugSeverity.critical, '🔴')}`);
-  outputToDisplay(`Major: ${project.testingMetrics.bugSeverity.major} ${renderBugIcon(project.testingMetrics.bugSeverity.major, '🟡')}`);
-  outputToDisplay(`Minor: ${project.testingMetrics.bugSeverity.minor} ${renderBugIcon(project.testingMetrics.bugSeverity.minor, '🟢')}`);
-
-  // Quality Metrics
-  outputToDisplay("\n──── Quality Metrics ────");
-  outputToDisplay(`Quality Score: ${Math.floor(project.quality)}% (${qualityGain > 0 ? '+' : ''}${qualityGain.toFixed(1)}%)`);
-  outputToDisplay(`Total Remaining: ${project.bugs} bugs`);
-
-  // Recommendations
-  if (project.bugs > 0) {
-    outputToDisplay("\n──── Recommendations ────");
-    if (project.testingMetrics.bugSeverity.critical > 0) {
-      outputToDisplay("⚠️ Critical bugs require attention");
-      outputToDisplay("   (release still possible but risky)");
-    }
-    if (project.testingMetrics.bugSeverity.major > 0) {
-      outputToDisplay("i️ Consider fixing major bugs");
-    }
-    if (project.testingMetrics.bugSeverity.minor > 0 && 
-        project.testingMetrics.bugSeverity.critical === 0 && 
-        project.testingMetrics.bugSeverity.major === 0) {
-      outputToDisplay("✓ Only minor bugs remain");
-    }
-
-    outputToDisplay("\nRelease Impact:");
-    outputToDisplay("• Game quality and reviews");
-    outputToDisplay("• Sales potential");
-    outputToDisplay("• Company reputation");
-  } else {
-    outputToDisplay("\n✨ All bugs fixed!");
-    outputToDisplay("Game is ready for release");
-  }
-  
-  outputToDisplay("╚═══════════════════════════════╝");
-
-  // Update testing progress
-  updateTestingProgress(project);
+  return event;
 }
 
-function renderBugIcon(count, icon) {
-  return count > 0 ? icon.repeat(Math.min(count, 5)) : '─';
+// Make sure getRandomEvent is available globally
+window.getRandomEvent = getRandomEvent;
+
+function applyMarketEffect(gameState, effect) {
+  if (!gameState.marketTrends) {
+    gameState.marketTrends = initializeMarketTrends(gameState);
+    return;
+  }
+  
+  Object.keys(gameState.marketTrends).forEach(genre => {
+    const trendData = gameState.marketTrends[genre];
+    if (effect.type === 'growth') {
+      trendData.growth += effect.amount;
+      trendData.popularity *= (1 + effect.amount);
+    } else {
+      trendData.growth -= effect.amount;
+      trendData.popularity *= (1 - effect.amount);
+    }
+    
+    // Keep values in reasonable range
+    trendData.popularity = Math.max(0.1, Math.min(2.0, trendData.popularity));
+    trendData.growth = Math.max(-0.2, Math.min(0.3, trendData.growth));
+  });
+}
+
+// Make function available globally
+window.applyMarketEffect = applyMarketEffect;
+
+function checkProductionMilestones(gameState, previousProgress) {
+  const project = gameState.project;
+  
+  for (const [milestone, threshold] of Object.entries(PRODUCTION_MILESTONES)) {
+    if (previousProgress < threshold * 100 && project.progress >= threshold * 100) {
+      outputToDisplay("\n╔═══════ Milestone Reached! ═══════╗");
+      outputToDisplay(`Milestone: ${milestone.replace(/_/g, ' ')}`);
+      outputToDisplay("──────────────────────────");
+      
+      switch (milestone) {
+        case 'DESIGN_REVIEW':
+          outputToDisplay("✓ Design review completed");
+          outputToDisplay("► Team efficiency increased by 10%");
+          gameState.modifiers.development_speed *= 1.1;
+          break;
+        case 'FEATURE_COMPLETE':
+          outputToDisplay("✓ Core features implemented");
+          outputToDisplay("► Bug rate reduced by 10%");
+          gameState.modifiers.bug_rate *= 0.9;
+          break;
+        case 'ALPHA':
+          outputToDisplay("✓ Alpha state reached");
+          outputToDisplay("► Quality bonus increased by 10%");
+          gameState.modifiers.quality *= 1.1;
+          break;
+        case 'BETA':
+          outputToDisplay("✓ Beta milestone achieved");
+          outputToDisplay("► Bug count reduced by 20%");
+          project.bugs *= 0.8;
+          break;
+      }
+      
+      updateTeamMorale(gameState, 10);
+      outputToDisplay("► Team morale improved!");
+      outputToDisplay("╚════════════════════════════════════╝");
+    }
+  }
+}
+
+function completeProductionPhase(gameState) {
+  outputToDisplay("\n=== Development Phase Complete! ===");
+  outputToDisplay("All planned features have been implemented.");
+  
+  // Transition to testing phase
+  gameState.project.phase = 'testing';
+  gameState.project.phaseProgress = 0;
+  
+  // Initialize testing metrics
+  gameState.project.testingMetrics = {
+    bugsFound: 0,
+    bugsFixed: 0,
+    playtestScore: 0,
+    testsConducted: {
+      unit: false,
+      integration: false,
+      playtest: false
+    },
+    bugSeverity: {
+      critical: 0,
+      major: 0,
+      minor: 0
+    }
+  };
+  
+  // Generate bugs based on development quality and team factors
+  const baseBugCount = 10;
+  const qualityFactor = (100 - (gameState.project.quality || 50)) / 100;
+  const bugRateFactor = gameState.modifiers.bug_rate || 1;
+  
+  gameState.project.bugs = Math.floor(baseBugCount * qualityFactor * bugRateFactor);
+  
+  // Distribute bugs among severity levels
+  gameState.project.testingMetrics.bugSeverity = {
+    critical: Math.floor(gameState.project.bugs * 0.2),
+    major: Math.floor(gameState.project.bugs * 0.3),
+    minor: Math.ceil(gameState.project.bugs * 0.5)
+  };
+  
+  outputToDisplay("Project has moved to Testing Phase");
+  outputToDisplay(`Initial bugs detected: ${gameState.project.bugs}`);
+  outputToDisplay("\nAvailable Commands:");
+  outputToDisplay("- test unit - Perform unit testing");
+  outputToDisplay("- test integration - Perform integration testing");
+  outputToDisplay("- test playtest - Conduct user playtesting");
+  
+  // Update phase indicator
+  updatePhaseIndicator(gameState.project);
 }
 
 function handleTestingPhase(gameState, testType) {
@@ -833,1207 +1550,159 @@ function handleTestingPhase(gameState, testType) {
   updateTestingProgress(project);
 }
 
-function updatePolishProgress(gameState) {
-  const project = gameState.project;
-  if (!project || project.phase !== 'release') {
-    return;
+function handleUnitTesting(project, effectiveness) {
+  // Base bugs discovered varies by effectiveness
+  const baseBugsFound = Math.floor(10 * effectiveness);
+  
+  // Bug discovery distribution by severity
+  const criticalBugs = Math.floor(baseBugsFound * 0.2);
+  const majorBugs = Math.floor(baseBugsFound * 0.3);
+  const minorBugs = baseBugsFound - criticalBugs - majorBugs;
+  
+  // Update metrics
+  project.testingMetrics.bugsFound += baseBugsFound;
+  project.bugs = (project.bugs || 0) + baseBugsFound;
+  
+  // Update bug severity distribution
+  if (!project.testingMetrics.bugSeverity) {
+    project.testingMetrics.bugSeverity = { critical: 0, major: 0, minor: 0 };
   }
+  
+  project.testingMetrics.bugSeverity.critical += criticalBugs;
+  project.testingMetrics.bugSeverity.major += majorBugs;
+  project.testingMetrics.bugSeverity.minor += minorBugs;
+  
+  outputToDisplay(`Found ${baseBugsFound} bugs through unit testing:`);
+  outputToDisplay(`- Critical: ${criticalBugs}`);
+  outputToDisplay(`- Major: ${majorBugs}`);
+  outputToDisplay(`- Minor: ${minorBugs}`);
+  
+  // Quality improvements from unit testing
+  const qualityGain = 5 * effectiveness;
+  project.quality = (project.quality || 0) + qualityGain;
+  outputToDisplay(`\nQuality improved by ${qualityGain.toFixed(1)}%`);
+}
 
-  // Progress is now based solely on bug status
-  const hasUnfixedBugs = project.bugs > 0;
-  if (hasUnfixedBugs) {
-    outputToDisplay("\n=== Polish Phase ===");
-    outputToDisplay("Bugs remaining: " + project.bugs);
-    const severity = project.testingMetrics.bugSeverity;
-    outputToDisplay("Critical: " + severity.critical);
-    outputToDisplay("Major: " + severity.major);
-    outputToDisplay("Minor: " + severity.minor);
-    outputToDisplay("\nOptions:");
-    outputToDisplay("- 'fix bugs' to continue fixing bugs");
-    outputToDisplay("- 'release' to release with current bugs");
-    outputToDisplay("\nNote: Releasing with bugs will impact:");
-    outputToDisplay("- Game quality and reviews");
-    outputToDisplay("- Sales potential");
-    outputToDisplay("- Company reputation");
-  } else {
-    outputToDisplay("\n✨ All bugs fixed!");
-    outputToDisplay("Game is ready for release. Use 'release' command to launch.");
+function handleIntegrationTesting(project, effectiveness) {
+  // Integration testing finds more bugs than unit testing
+  const baseBugsFound = Math.floor(15 * effectiveness);
+  
+  // Bug discovery distribution by severity
+  const criticalBugs = Math.floor(baseBugsFound * 0.3); // Higher chance of critical bugs
+  const majorBugs = Math.floor(baseBugsFound * 0.4);
+  const minorBugs = baseBugsFound - criticalBugs - majorBugs;
+  
+  // Update metrics
+  project.testingMetrics.bugsFound += baseBugsFound;
+  project.bugs = (project.bugs || 0) + baseBugsFound;
+  
+  // Update bug severity distribution
+  if (!project.testingMetrics.bugSeverity) {
+    project.testingMetrics.bugSeverity = { critical: 0, major: 0, minor: 0 };
+  }
+  
+  project.testingMetrics.bugSeverity.critical += criticalBugs;
+  project.testingMetrics.bugSeverity.major += majorBugs;
+  project.testingMetrics.bugSeverity.minor += minorBugs;
+  
+  outputToDisplay(`Found ${baseBugsFound} bugs through integration testing:`);
+  outputToDisplay(`- Critical: ${criticalBugs}`);
+  outputToDisplay(`- Major: ${majorBugs}`);
+  outputToDisplay(`- Minor: ${minorBugs}`);
+  
+  // Quality improvements from integration testing
+  const qualityGain = 7 * effectiveness;
+  project.quality = (project.quality || 0) + qualityGain;
+  outputToDisplay(`\nQuality improved by ${qualityGain.toFixed(1)}%`);
+}
+
+function handlePlaytesting(project, effectiveness) {
+  // Playtesting finds user-facing issues
+  const baseBugsFound = Math.floor(8 * effectiveness);
+  
+  // Bug discovery distribution by severity
+  const criticalBugs = Math.floor(baseBugsFound * 0.1);
+  const majorBugs = Math.floor(baseBugsFound * 0.3);
+  const minorBugs = baseBugsFound - criticalBugs - majorBugs;
+  
+  // Update metrics
+  project.testingMetrics.bugsFound += baseBugsFound;
+  project.bugs = (project.bugs || 0) + baseBugsFound;
+  
+  // Update bug severity distribution
+  if (!project.testingMetrics.bugSeverity) {
+    project.testingMetrics.bugSeverity = { critical: 0, major: 0, minor: 0 };
+  }
+  
+  project.testingMetrics.bugSeverity.critical += criticalBugs;
+  project.testingMetrics.bugSeverity.major += majorBugs;
+  project.testingMetrics.bugSeverity.minor += minorBugs;
+  
+  // Playtest score calculation (50-100 scale)
+  const baseScore = 50 + (Math.random() * 30);
+  const qualityBonus = ((project.quality || 0) / 100) * 20;
+  project.testingMetrics.playtestScore = Math.min(100, Math.floor(baseScore + qualityBonus));
+  
+  outputToDisplay(`Found ${baseBugsFound} bugs through playtesting:`);
+  outputToDisplay(`- Critical: ${criticalBugs}`);
+  outputToDisplay(`- Major: ${majorBugs}`);
+  outputToDisplay(`- Minor: ${minorBugs}`);
+  
+  outputToDisplay(`\nPlaytest Score: ${project.testingMetrics.playtestScore}/100`);
+  
+  // Quality improvements from playtesting
+  const qualityGain = 10 * effectiveness;
+  project.quality = (project.quality || 0) + qualityGain;
+  outputToDisplay(`Quality improved by ${qualityGain.toFixed(1)}%`);
+}
+
+function updateTestingProgress(project) {
+  if (!project.testingMetrics) return;
+  
+  const testTypes = Object.keys(project.testingMetrics.testsConducted);
+  const completedTests = testTypes.filter(type => project.testingMetrics.testsConducted[type]).length;
+  const progress = (completedTests / testTypes.length) * 100;
+  
+  project.phaseProgress = progress;
+  
+  // Check if testing phase is complete
+  if (progress >= 100) {
+    project.phase = 'release';
+    project.phaseProgress = 0;
+    
+    // Initialize bug tracking for release phase
+    project.initialBugs = project.bugs;
+    
+    outputToDisplay("\n=== Testing Phase Complete! ===");
+    outputToDisplay("Project has entered Polish Phase");
+    outputToDisplay(`Total bugs found: ${project.bugs}`);
+    outputToDisplay(`Critical: ${project.testingMetrics.bugSeverity.critical}`);
+    outputToDisplay(`Major: ${project.testingMetrics.bugSeverity.major}`);
+    outputToDisplay(`Minor: ${project.testingMetrics.bugSeverity.minor}`);
+    outputToDisplay("\nAvailable Commands:");
+    outputToDisplay("- fix bugs - Fix remaining issues");
+    outputToDisplay("- release - Release the game");
   }
 }
 
-function isReadyForRelease(project) {
-  // Game is always ready for release in polish phase, but with consequences for bugs
-  return project.phase === 'release';
-}
+// Make handleTestingPhase function available globally
+window.handleTestingPhase = handleTestingPhase;
 
-function displayReleaseResults(game, stats, bugImpact) {
-  outputToDisplay("\n╔═══════ Game Release ═══════╗");
-  
-  // Basic Info
-  outputToDisplay(`Title: ${game.name}`);
-  outputToDisplay(`Genre: ${game.genre} (${game.subgenre})`);
-  outputToDisplay(`Development: ${game.developmentTime} weeks`);
-  
-  // Quality Section
-  outputToDisplay("\n──── Quality Metrics ────");
-  outputToDisplay(`Base Quality: ${game.quality}%`);
-  
-  // Bug Impact Section
-  if (game.bugs.total > 0) {
-    outputToDisplay("\n──── Bug Impact ────");
-    outputToDisplay(`Total Bugs: ${game.bugs.total}`);
-    outputToDisplay(`Critical: ${game.bugs.severity.critical} 🔴`);
-    outputToDisplay(`Major: ${game.bugs.severity.major} 🟡`);
-    outputToDisplay(`Minor: ${game.bugs.severity.minor} 🟢`);
-    outputToDisplay(`Quality Loss: -${Math.round(bugImpact.scoreReduction)}`);
-  }
-  
-  // Results Section
-  outputToDisplay("\n──── Final Results ────");
-  outputToDisplay(`Success Score: ${stats.successScore}/100`);
-  outputToDisplay(`Revenue: $${stats.revenue}`);
-  if (bugImpact?.revenueLoss > 0) {
-    outputToDisplay(`Revenue Impact: -${Math.round(bugImpact.revenueLoss * 100)}%`);
-  }
-  
-  // Market Performance
-  outputToDisplay("\n──── Market Performance ────");
-  outputToDisplay(`Marketing: ${((stats.marketingImpact - 1) * 100).toFixed(0)}%`);
-  outputToDisplay(`Timing: ${((stats.timingImpact - 1) * 100).toFixed(0)}%`);
-  
-  // Reviews Section
-  const reviews = generateReviews(game, gameState);
-  outputToDisplay("\n──── Press Reviews ────");
-  reviews.forEach(review => {
-    outputToDisplay(`\n${review.reviewer.name} - ${review.reviewer.title}`);
-    outputToDisplay(`Background: ${review.reviewer.background}`);
-    outputToDisplay(`Score: ${review.score}/100`);
-    outputToDisplay(`"${review.mainQuote}"`);
-    if (review.focusComments.length > 0) {
-      outputToDisplay("Focus Areas:");
-      review.focusComments.forEach(comment => outputToDisplay(`- ${comment}`));
-    }
+function calculateQualityGain(fixedBugs) {
+  const qualityGainFactors = {
+    critical: 2.0,  // Critical bugs have biggest quality impact
+    major: 1.0,     // Major bugs have moderate impact
+    minor: 0.5      // Minor bugs have smallest impact
+  };
+
+  let totalGain = 0;
+  Object.entries(fixedBugs).forEach(([severity, count]) => {
+    totalGain += count * qualityGainFactors[severity];
   });
 
-  // Special Achievements
-  if (stats.successScore >= 90) {
-    outputToDisplay("\n🏆 Masterpiece Achievement!");
-  } else if (stats.successScore >= 80) {
-    outputToDisplay("\n🌟 Critical Success!");
-  } else if (game.bugs.total > 0) {
-    outputToDisplay("\n⚠️ Released with known issues");
-    outputToDisplay("May affect long-term reputation");
-  }
-
-  outputToDisplay("╚════════════════════════════╝");
-  displayFinalScore(game, gameState);
+  // Cap the maximum quality gain per session
+  return Math.min(10, totalGain);
 }
 
-function calculateFinalQuality(gameState) {
-  if (!gameState?.project) return 0;
-
-  // Start with existing quality calculation
-  let quality = gameState.project.quality || 0;
-
-  // Preserve existing priority modifications
-  const priority = gameState.project.priority || 'balanced';
-  switch(priority) {
-    case 'quality':
-      quality *= 1.2;
-      break;
-    case 'speed':
-      quality *= 0.8;
-      break;
-  }
-
-  // Keep existing team effects
-  const teamEfficiency = calculateTeamEfficiency(gameState)?.efficiency || 1;
-  quality *= (0.8 + (teamEfficiency * 0.4));
-
-  // Maintain technology effects
-  quality *= (gameState.modifiers?.quality || 1);
-
-  // Preserve optimization focus effects
-  if (gameState.project.optimizationFocus === 'quality') {
-    quality *= 1.1;
-  }
-
-  // NEW: Add bug severity impact
-  if (gameState.project.bugs > 0 && gameState.project.testingMetrics?.bugSeverity) {
-    const severity = gameState.project.testingMetrics.bugSeverity;
-    const bugImpact = (
-      (severity.critical || 0) * QUALITY_IMPACT_WEIGHTS.BUG_SEVERITY.critical +
-      (severity.major || 0) * QUALITY_IMPACT_WEIGHTS.BUG_SEVERITY.major +
-      (severity.minor || 0) * QUALITY_IMPACT_WEIGHTS.BUG_SEVERITY.minor
-    );
-    quality *= Math.max(0.1, 1 - bugImpact);
-  }
-
-  // NEW: Add development decision impacts
-  const decisionImpact = QUALITY_IMPACT_WEIGHTS.DEVELOPMENT_DECISIONS[
-    gameState.project.priority || 'balanced'
-  ] || 1.0;
-  quality *= decisionImpact;
-
-  // NEW: Add rush penalties if applicable
-  if (gameState.project.testingMetrics?.testsConducted) {
-    const conducted = gameState.project.testingMetrics.testsConducted;
-    const testsRun = Object.values(conducted).filter(Boolean).length;
-    
-    if (testsRun === 0) {
-      quality *= QUALITY_IMPACT_WEIGHTS.RUSH_PENALTIES.no_testing;
-    } else if (testsRun === 1) {
-      quality *= QUALITY_IMPACT_WEIGHTS.RUSH_PENALTIES.minimal_testing;
-    } else if (testsRun === 2) {
-      quality *= QUALITY_IMPACT_WEIGHTS.RUSH_PENALTIES.partial_testing;
-    }
-  }
-
-  // Preserve existing bug impact calculation
-  if (gameState.project.bugs > 0) {
-    const bugPenalty = Math.min(0.5, gameState.project.bugs * 0.02);
-    quality *= (1 - bugPenalty);
-  }
-
-  return Math.min(100, Math.max(0, Math.round(quality)));
-}
-
-function calculateBugImpact(project) {
-  // Preserve existing bug impact calculation
-  const severity = project.testingMetrics.bugSeverity;
-  const impact = {
-    scoreReduction: 0,
-    revenueLoss: 0,
-    reputationDamage: 0
-  };
-
-  // Keep existing severity calculations
-  if (severity.critical > 0) {
-    impact.scoreReduction += severity.critical * 5;
-    impact.revenueLoss += severity.critical * 0.05;
-    impact.reputationDamage += severity.critical * 0.1;
-  }
-
-  if (severity.major > 0) {
-    impact.scoreReduction += severity.major * 2;
-    impact.revenueLoss += severity.major * 0.02;
-    impact.reputationDamage += severity.major * 0.05;
-  }
-
-  if (severity.minor > 0) {
-    impact.scoreReduction += severity.minor * 0.5;
-    impact.revenueLoss += severity.minor * 0.01;
-    impact.reputationDamage += severity.minor * 0.01;
-  }
-
-  // NEW: Add weighted quality impact
-  impact.qualityImpact = {
-    critical: (severity.critical || 0) * QUALITY_IMPACT_WEIGHTS.BUG_SEVERITY.critical,
-    major: (severity.major || 0) * QUALITY_IMPACT_WEIGHTS.BUG_SEVERITY.major,
-    minor: (severity.minor || 0) * QUALITY_IMPACT_WEIGHTS.BUG_SEVERITY.minor,
-    total: 0
-  };
-
-  impact.qualityImpact.total = 
-    impact.qualityImpact.critical + 
-    impact.qualityImpact.major + 
-    impact.qualityImpact.minor;
-
-  // Preserve existing impact caps
-  impact.scoreReduction = Math.min(50, impact.scoreReduction);
-  impact.revenueLoss = Math.min(0.75, impact.revenueLoss);
-  impact.reputationDamage = Math.min(0.5, impact.reputationDamage);
-
-  return impact;
-}
-
-function displayPlanningStatus(project) {
-  if (!project || !project.planningData) {
-    outputToDisplay("No active project in planning phase.");
-    return;
-  }
-
-  // Project Overview Section
-  outputToDisplay("\n=== Project Overview ===");
-  outputToDisplay(`Project Name: ${project.name}`);
-  outputToDisplay(`Genre: ${project.genre}`);
-  outputToDisplay(`Subgenre: ${project.subgenre}`);
-
-  // Current Choices Summary
-  if (project.planningData.completedDecisions) {
-    outputToDisplay("\n=== Current Decisions ===");
-    project.planningData.completedDecisions.forEach(decision => {
-      outputToDisplay(`✓ ${formatDecisionName(decision)}`);
-    });
-  }
-
-  // Feature Planning Section
-  outputToDisplay("\n=== Feature Planning ===");
-  if (project.planningData.features.length === 0) {
-    outputToDisplay("No features planned yet");
-    outputToDisplay("Use 'feature add [name] [size]' to add features");
-  } else {
-    outputToDisplay("Current Features:");
-    const featureTable = createFeatureTable(project.planningData.features);
-    featureTable.forEach(row => outputToDisplay(row));
-  }
-
-  // Team Assignment Section
-  outputToDisplay("\n=== Team Assignments ===");
-  if (project.planningData.assignedStaff.length === 0) {
-    outputToDisplay("No staff assigned");
-    outputToDisplay("Use 'assign [staff] [role] [allocation]' to assign team members");
-  } else {
-    outputToDisplay("Current Assignments:");
-    project.planningData.assignedStaff.forEach(assignment => {
-      outputToDisplay(`➤ ${assignment.role}: ${assignment.allocation}% allocated`);
-    });
-  }
-
-  // Resource Allocation Section
-  outputToDisplay("\n=== Resource Allocation ===");
-  const allocations = project.planningData.resourceAllocation;
-  if (Object.values(allocations).every(v => v === 0)) {
-    outputToDisplay("No resources allocated");
-    outputToDisplay("Use 'allocate [resource] [amount]' to distribute resources");
-  } else {
-    outputToDisplay("Current Allocations:");
-    Object.entries(allocations).forEach(([resource, amount]) => {
-      const bar = createResourceBar(amount);
-      outputToDisplay(`${formatResourceName(resource)}: ${bar} ${amount}%`);
-    });
-  }
-
-  // Milestone Planning Section
-  outputToDisplay("\n=== Project Milestones ===");
-  if (project.planningData.milestones.length === 0) {
-    outputToDisplay("No milestones set");
-    outputToDisplay("Use 'milestone add [week] [name]' to set project milestones");
-  } else {
-    outputToDisplay("Planned Milestones:");
-    project.planningData.milestones.forEach(milestone => {
-      outputToDisplay(`Week ${milestone.week}: ${milestone.name}`);
-    });
-  }
-
-  // Project Estimates Section
-  const estimates = project.planningData.estimates;
-  outputToDisplay("\n=== Project Estimates ===");
-  outputToDisplay(`Development Timeline: ${estimates.timeRequired} weeks`);
-  outputToDisplay(`Budget Required: $${estimates.costEstimate}`);
-  outputToDisplay(`Recommended Team Size: ${estimates.staffingNeeds} developers`);
-
-  // Requirements and Warnings Section
-  const completionStatus = checkPlanningCompletion(project);
-  if (!completionStatus.valid) {
-    outputToDisplay("\n=== Required Actions ===");
-    completionStatus.missing.forEach(requirement => {
-      outputToDisplay(`! ${formatRequirement(requirement)}`);
-    });
-  }
-
-  // Available Actions Section
-  outputToDisplay("\n=== Available Commands ===");
-  outputToDisplay("• feature add [name] [size] - Add new feature");
-  outputToDisplay("• assign [staff] [role] [allocation] - Assign team member");
-  outputToDisplay("• allocate [resource] [amount] - Adjust resource allocation");
-  outputToDisplay("• milestone add [week] [name] - Set project milestone");
-  
-  if (completionStatus.valid) {
-    outputToDisplay("\n✓ Planning phase complete!");
-    outputToDisplay("Use 'complete planning' to proceed to development");
-  }
-}
-
-function createFeatureTable(features) {
-  if (features.length === 0) return [];
-
-  const table = [];
-  table.push("┌─────────────┬────────────┬──────────┐");
-  table.push("│ Feature     │ Complexity │   Cost   │");
-  table.push("├─────────────┼────────────┼──────────┤");
-
-  features.forEach(feature => {
-    const name = feature.name.padEnd(11);
-    const complexity = `${feature.complexity}`.padStart(10);
-    const cost = `$${feature.costEstimate}`.padStart(8);
-    table.push(`│ ${name} │ ${complexity} │ ${cost} │`);
-  });
-
-  table.push("└─────────────┴────────────┴──────────┘");
-  return table;
-}
-
-function createResourceBar(percentage) {
-  const width = 20;
-  const filled = Math.floor((percentage / 100) * width);
-  return `[${"█".repeat(filled)}${"░".repeat(width - filled)}]`;
-}
-
-function formatResourceName(resource) {
-  return resource.charAt(0).toUpperCase() + resource.slice(1).padEnd(10);
-}
-
-function formatDecisionName(decision) {
-  return decision
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-function generateDevelopmentReport(gameState, details) {
-  const { progressGain = 0, team = { efficiency: 1 }, event, previousProgress = 0 } = details;
-  const project = gameState.project;
-  
-  outputToDisplay("\n╔════ Development Progress Report ════╗");
-  
-  // Progress Bar Section
-  const progressBar = createProgressBar(project.progress || 0);
-  outputToDisplay(`${progressBar}`);
-  outputToDisplay(`Weekly Progress: +${progressGain.toFixed(1)}%`);
-  outputToDisplay(`Overall: ${Math.floor(previousProgress)}% → ${Math.floor(project.progress)}%`);
-  outputToDisplay("╟──────────────────────────────────╢");
-
-  // Event Section (if any)
-  if (event) {
-    outputToDisplay("Event:");
-    outputToDisplay(`➤ ${event.description}`);
-    outputToDisplay("╟──────────────────────────────────╢");
-  }
-
-  // Team Performance Section
-  outputToDisplay("Team Status:");
-  outputToDisplay(`◆ Efficiency: ${Math.floor(team.efficiency * 100)}%`);
-  outputToDisplay(`◆ Morale: ${Math.round(project.teamMorale)}%`);
-  
-  // Feature Progress Section
-  if (project.planningData?.features) {
-    const features = project.planningData.features;
-    const completedFeatures = Math.floor(features.length * (project.progress / 100));
-    outputToDisplay("\nFeature Progress:");
-    outputToDisplay(`◆ Completed: ${completedFeatures}/${features.length}`);
-    const featureBar = createFeatureProgressBar(completedFeatures, features.length);
-    outputToDisplay(featureBar);
-  }
-  
-  outputToDisplay("╟──────────────────────────────────╢");
-
-  // Quality Metrics Section
-  outputToDisplay("Development Metrics:");
-  const codeQuality = calculateCodeQuality(gameState);
-  const technicalDebt = calculateTechnicalDebt(gameState);
-  outputToDisplay(`◆ Code Quality: ${codeQuality}%`);
-  outputToDisplay(`◆ Technical Debt: ${technicalDebt}%`);
-  
-  // Time Estimation Section
-  const timeRemaining = estimateTimeRemaining(gameState);
-  outputToDisplay("\nProject Timeline:");
-  outputToDisplay(`◆ Remaining Time: ${timeRemaining} weeks`);
-  
-  // Recommendations Section (if needed)
-  if (technicalDebt > 30 || project.teamMorale < 70) {
-    outputToDisplay("\nRecommendations:");
-    if (technicalDebt > 30) {
-      outputToDisplay("! Consider addressing technical debt");
-    }
-    if (project.teamMorale < 70) {
-      outputToDisplay("! Team morale needs attention");
-    }
-  }
-  
-  outputToDisplay("╚════════════════════════════════════╝");
-}
-
-function createProgressBar(progress) {
-  const width = 30;
-  const filled = Math.floor((progress / 100) * width);
-  const bar = "█".repeat(filled) + "░".repeat(width - filled);
-  return `Progress: [${bar}] ${Math.floor(progress)}%`;
-}
-
-function createFeatureProgressBar(completed, total) {
-  const width = 20;
-  const filled = Math.floor((completed / total) * width);
-  const bar = "■".repeat(filled) + "□".repeat(width - filled);
-  return `[${bar}] ${completed}/${total}`;
-}
-
-function displayPhaseObjectives(phase) {
-  outputToDisplay("\n╔════ Phase Objectives ════╗");
-  
-  const objectives = {
-    development: [
-      "✦ Implement planned features",
-      "✦ Maintain code quality",
-      "✦ Meet milestone deadlines",
-      "✦ Manage team efficiency"
-    ],
-    testing: [
-      "✦ Find and fix bugs",
-      "✦ Conduct playtesting",
-      "✦ Optimize performance",
-      "✦ Ensure feature completion"
-    ],
-    release: [
-      "✦ Choose marketing strategy",
-      "✦ Select launch window",
-      "✦ Polish final details",
-      "✦ Prepare launch assets"
-    ]
-  };
-
-  if (objectives[phase]) {
-    objectives[phase].forEach(objective => 
-      outputToDisplay(objective)
-    );
-  }
-  
-  outputToDisplay("╚════════════════════════╝");
-}
-
-function checkProductionMilestones(gameState, previousProgress) {
-  const project = gameState.project;
-  
-  for (const [milestone, threshold] of Object.entries(PRODUCTION_MILESTONES)) {
-    if (previousProgress < threshold * 100 && project.progress >= threshold * 100) {
-      outputToDisplay("\n╔═══════ Milestone Reached! ═══════╗");
-      outputToDisplay(`Milestone: ${milestone.replace(/_/g, ' ')}`);
-      outputToDisplay("──────────────────────────");
-      
-      switch (milestone) {
-        case 'DESIGN_REVIEW':
-          outputToDisplay("✓ Design review completed");
-          outputToDisplay("► Team efficiency increased by 10%");
-          gameState.modifiers.development_speed *= 1.1;
-          break;
-        case 'FEATURE_COMPLETE':
-          outputToDisplay("✓ Core features implemented");
-          outputToDisplay("► Bug rate reduced by 10%");
-          gameState.modifiers.bug_rate *= 0.9;
-          break;
-        case 'ALPHA':
-          outputToDisplay("✓ Alpha state reached");
-          outputToDisplay("► Quality bonus increased by 10%");
-          gameState.modifiers.quality *= 1.1;
-          break;
-        case 'BETA':
-          outputToDisplay("✓ Beta milestone achieved");
-          outputToDisplay("► Bug count reduced by 20%");
-          project.bugs *= 0.8;
-          break;
-      }
-      
-      updateTeamMorale(gameState, 10);
-      outputToDisplay("► Team morale improved!");
-      outputToDisplay("╚══════════════════════════╝");
-    }
-  }
-}
-
-function calculateReleaseStats(gameState, finalQuality) {
-  try {
-    // Validate basic requirements
-    const project = gameState.project;
-    if (!project) {
-      throw new Error('No active project for release stats calculation');
-    }
-
-    // Ensure market data exists
-    const marketTrends = ensureMarketData(gameState);
-    
-    // Calculate base success score from quality
-    let successScore = finalQuality;
-
-    // Calculate marketing impact
-    const marketingImpact = calculateMarketingEffectiveness(project, gameState);
-    
-    // Calculate timing impact with fallback
-    const genreData = marketTrends[project.genre.toLowerCase()] || { popularity: 1.0, growth: 0 };
-    const timingImpact = calculateTimingImpact(project.launchWindow, genreData);
-
-    // NEW: First-time studio considerations
-    const isFirstRelease = !gameState.gameHistory || gameState.gameHistory.length === 0;
-    const studioBonus = isFirstRelease ? 1.1 : 1.0; // 10% bonus for first game
-    const marketEntryModifier = calculateMarketEntryModifier(gameState, project.genre);
-
-    // Apply base effects
-    successScore *= marketingImpact;
-    successScore *= timingImpact;
-    successScore *= studioBonus;
-    successScore *= marketEntryModifier;
-
-    // Apply optimization effects if any
-    if (project.optimizationEffects) {
-      Object.values(project.optimizationEffects).forEach(effect => {
-        successScore *= effect;
-      });
-    }
-
-    // Calculate revenue based on success with new studio factors
-    const baseRevenue = (successScore / 100) * (project.budget || 10000) * 2;
-    const revenueMultiplier = calculateRevenueMultiplier(gameState, isFirstRelease);
-    const revenue = Math.floor(baseRevenue * revenueMultiplier);
-
-    // Calculate reception with new studio context
-    const reception = calculateAudienceReception(successScore, project, gameState);
-
-    // Keep success score in valid range
-    successScore = Math.round(Math.min(100, Math.max(0, successScore)));
-
-    return {
-      successScore,
-      revenue,
-      marketingImpact,
-      timingImpact,
-      reception,
-      // NEW: Additional release metrics
-      marketEntry: {
-        isFirstRelease,
-        studioBonus,
-        marketEntryModifier,
-        revenueMultiplier
-      }
-    };
-
-  } catch (error) {
-    console.error('Failed to calculate release stats:', error);
-    throw error;
-  }
-}
-
-// NEW: Calculate market entry modifier
-function calculateMarketEntryModifier(gameState, genre) {
-  // Base modifier for all releases
-  let modifier = 1.0;
-
-  // Get genre experience
-  const genreReleases = (gameState.gameHistory || [])
-    .filter(game => game.genre === genre).length;
-
-  if (genreReleases === 0) {
-    // First time in genre bonus
-    modifier *= 1.15;
-  } else {
-    // Experience bonus
-    modifier *= (1 + (Math.min(genreReleases, 5) * 0.05));
-  }
-
-  // Market trend adjustment
-  const marketTrends = gameState.marketTrends || {};
-  const genreData = marketTrends[genre.toLowerCase()] || { 
-    popularity: 1.0, 
-    growth: 0,
-    saturation: 0.5 
-  };
-
-  modifier *= (1 + (genreData.growth || 0));
-  modifier *= (1 - ((genreData.saturation || 0.5) * 0.2));
-
-  return Math.max(0.8, Math.min(1.5, modifier));
-}
-
-// NEW: Calculate revenue multiplier with new studio considerations
-function calculateRevenueMultiplier(gameState, isFirstRelease) {
-  // Base multiplier from reputation
-  const baseMultiplier = (1 + (gameState.reputation?.marketPresence || 0));
-  
-  // First release adjustment
-  if (isFirstRelease) {
-    return baseMultiplier * 1.2; // 20% bonus for first game
-  }
-
-  // Experience scaling
-  const releaseCount = gameState.gameHistory?.length || 0;
-  const experienceBonus = Math.min(0.5, releaseCount * 0.05); // Up to 50% bonus
-  
-  // Genre loyalty bonus
-  const genreLoyalty = calculateGenreLoyalty(gameState);
-  
-  return baseMultiplier * (1 + experienceBonus) * (1 + genreLoyalty);
-}
-
-// NEW: Calculate genre loyalty bonus
-function calculateGenreLoyalty(gameState) {
-  if (!gameState.gameHistory || gameState.gameHistory.length === 0) {
-    return 0;
-  }
-
-  const genreReleases = {};
-  gameState.gameHistory.forEach(game => {
-    genreReleases[game.genre] = (genreReleases[game.genre] || 0) + 1;
-  });
-
-  const maxReleases = Math.max(...Object.values(genreReleases));
-  return Math.min(0.3, maxReleases * 0.05); // Up to 30% bonus
-}
-
-function compileFinalScore(project, gameState) {
-  // Get detailed category scores
-  const scores = calculateDetailedScores(project);
-  
-  // Get genre-specific weights
-  const weights = GENRE_SCORE_WEIGHTS[project.genre.toLowerCase()] || {
-    gameDesign: 0.33,
-    technicalQuality: 0.33,
-    playerExperience: 0.34,
-    expectations: 0.7
-  };
-
-  // Calculate weighted score
-  const weightedScore = (
-    (scores.gameDesign * weights.gameDesign) +
-    (scores.technicalQuality * weights.technicalQuality) +
-    (scores.playerExperience * weights.playerExperience)
-  );
-
-  // Apply market expectations
-  const marketExpectations = calculateMarketExpectations(project, gameState);
-  const finalScore = weightedScore * marketExpectations;
-
-  // Get appropriate feedback
-  const feedback = generateScoreFeedback(finalScore);
-
-  return {
-    categoryScores: scores,
-    weightedScore: weightedScore,
-    finalScore: finalScore,
-    feedback: feedback,
-    expectations: marketExpectations
-  };
-}
-
-function calculateMarketExpectations(project, gameState) {
-  const weights = GENRE_SCORE_WEIGHTS[project.genre.toLowerCase()] || { expectations: 0.7 };
-  
-  // Base expectations
-  let expectations = weights.expectations;
-
-  // Adjust for company history
-  if (gameState.gameHistory && gameState.gameHistory.length > 0) {
-    const recentGames = gameState.gameHistory.slice(-3);
-    const avgScore = recentGames.reduce((sum, game) => sum + game.successScore, 0) / recentGames.length;
-    expectations *= (1 + (avgScore - 75) / 100); // Adjust expectations based on recent performance
-  } else {
-    // First game gets slightly lower expectations
-    expectations *= 0.9;
-  }
-
-  // Market presence adjustment
-  if (gameState.reputation?.marketPresence) {
-    expectations *= (1 + (gameState.reputation.marketPresence * 0.2));
-  }
-
-  return Math.min(1.2, Math.max(0.6, expectations));
-}
-
-function generateScoreFeedback(score) {
-  // Find appropriate feedback category
-  let category = null;
-  for (const [cat, data] of Object.entries(SCORE_FEEDBACK)) {
-    if (score >= data.threshold) {
-      category = cat;
-      break;
-    }
-  }
-  
-  // Get random message from category
-  const feedback = SCORE_FEEDBACK[category];
-  const message = feedback.messages[Math.floor(Math.random() * feedback.messages.length)];
-  
-  return {
-    category: category,
-    message: message,
-    threshold: feedback.threshold
-  };
-}
-
-function displayFinalScore(project, gameState) {
-  const finalResults = compileFinalScore(project, gameState);
-  
-  outputToDisplay("\n╔═══════ Final Game Score ═══════╗");
-  
-  // Category Scores
-  outputToDisplay("\n──── Category Scores ────");
-  outputToDisplay(`Game Design:       ${finalResults.categoryScores.gameDesign.toFixed(2)}/10`);
-  outputToDisplay(`Technical Quality: ${finalResults.categoryScores.technicalQuality.toFixed(2)}/10`);
-  outputToDisplay(`Player Experience: ${finalResults.categoryScores.playerExperience.toFixed(2)}/10`);
-  
-  // Market Context
-  outputToDisplay("\n──── Market Context ────");
-  outputToDisplay(`Genre Expectations: ${(finalResults.expectations * 100).toFixed(1)}%`);
-  if (finalResults.expectations > 1.0) {
-    outputToDisplay("! High expectations due to company reputation");
-  } else if (finalResults.expectations < 0.8) {
-    outputToDisplay("+ Lower expectations for new studio");
-  }
-  
-  // Final Score
-  outputToDisplay("\n──── Final Rating ────");
-  outputToDisplay(`Overall Score: ${finalResults.finalScore.toFixed(2)}/10`);
-  
-  // Critical Reception
-  outputToDisplay("\n──── Critical Reception ────");
-  outputToDisplay(`"${finalResults.feedback.message}"`);
-  
-  // Market Position
-  const marketPosition = assessMarketPosition(finalResults.finalScore, project.genre, gameState);
-  outputToDisplay("\n──── Market Position ────");
-  marketPosition.forEach(line => outputToDisplay(line));
-  
-  outputToDisplay("╚════════════════════════════╝");
-}
-
-function assessMarketPosition(score, genre, gameState) {
-  const messages = [];
-  
-  // Genre competition
-  const marketTrends = gameState.marketTrends?.[genre.toLowerCase()];
-  if (marketTrends) {
-    if (marketTrends.saturation > 0.8) {
-      messages.push("• Highly competitive market - standing out will be crucial");
-    } else if (marketTrends.saturation < 0.3) {
-      messages.push("• Market has room for new entries");
-    }
-    
-    if (marketTrends.growth > 0.1) {
-      messages.push("• Growing market - good timing for release");
-    } else if (marketTrends.growth < -0.1) {
-      messages.push("• Shrinking market - may affect sales");
-    }
-  }
-  
-  // Score-based position
-  if (score >= 9.0) {
-    messages.push("• Strong potential to become a market leader");
-  } else if (score >= 8.0) {
-    messages.push("• Well positioned for commercial success");
-  } else if (score >= 7.0) {
-    messages.push("• Should find its audience with proper marketing");
-  } else {
-    messages.push("• May struggle to stand out in the market");
-  }
-  
-  return messages;
-}
-
-function calculateDetailedScores(project) {
-  const scores = {
-    gameDesign: calculateGameDesignScore(project),
-    technicalQuality: calculateTechnicalScore(project),
-    playerExperience: calculatePlayerExperienceScore(project)
-  };
-
-  // Calculate overall weighted score
-  scores.overall = Math.round(
-    (scores.gameDesign * 0.35) +
-    (scores.technicalQuality * 0.35) +
-    (scores.playerExperience * 0.3)
-  );
-
-  return scores;
-}
-
-function calculateGameDesignScore(project) {
-  const gameplayScore = calculateGameplayScore(project);
-  const featureScore = calculateFeatureScore(project);
-  const innovationScore = calculateInnovationScore(project);
-
-  return Math.round(
-    (gameplayScore * SCORING_CATEGORIES.gameDesign.gameplay.weight) +
-    (featureScore * SCORING_CATEGORIES.gameDesign.features.weight) +
-    (innovationScore * SCORING_CATEGORIES.gameDesign.innovation.weight)
-  );
-}
-
-function calculateTechnicalScore(project) {
-  const bugScore = calculateBugScore(project);
-  const performanceScore = calculatePerformanceScore(project);
-  const polishScore = calculatePolishScore(project);
-
-  return Math.round(
-    (bugScore * SCORING_CATEGORIES.technicalQuality.bugs.weight) +
-    (performanceScore * SCORING_CATEGORIES.technicalQuality.performance.weight) +
-    (polishScore * SCORING_CATEGORIES.technicalQuality.polish.weight)
-  );
-}
-
-function calculatePlayerExperienceScore(project) {
-  const funScore = calculateFunScore(project);
-  const engagementScore = calculateEngagementScore(project);
-  const replayabilityScore = calculateReplayabilityScore(project);
-
-  return Math.round(
-    (funScore * SCORING_CATEGORIES.playerExperience.funFactor.weight) +
-    (engagementScore * SCORING_CATEGORIES.playerExperience.engagement.weight) +
-    (replayabilityScore * SCORING_CATEGORIES.playerExperience.replayability.weight)
-  );
-}
-
-// Individual score calculation functions
-function calculateGameplayScore(project) {
-  let score = 7; // Base score
-
-  // Adjust based on development decisions
-  if (project.priority === 'quality') score += 1;
-  if (project.priority === 'speed') score -= 1;
-
-  // Factor in testing phase feedback
-  if (project.testingMetrics?.playtestScore) {
-    score += (project.testingMetrics.playtestScore - 70) / 10;
-  }
-
-  // Consider feature implementation
-  if (project.planningData?.features) {
-    const completion = project.planningData.features.filter(f => f.completed).length / 
-                      project.planningData.features.length;
-    score += completion * 2;
-  }
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculateFeatureScore(project) {
-  let score = 7; // Base score
-
-  // Check feature completion and quality
-  if (project.planningData?.features) {
-    const features = project.planningData.features;
-    const completion = features.filter(f => f.completed).length / features.length;
-    score += completion * 2;
-  }
-
-  // Consider development priority
-  if (project.priority === 'quality') score += 1;
-  if (project.priority === 'speed') score -= 1;
-
-  // Factor in polish phase
-  if (project.optimizationFocus === 'features') score += 1;
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculateInnovationScore(project) {
-  let score = 6; // Base score
-
-  // Consider genre and market factors
-  if (project.genreInnovation) score += 2;
-  
-  // Check feature uniqueness
-  if (project.planningData?.features) {
-    const uniqueFeatures = new Set(project.planningData.features.map(f => f.type)).size;
-    score += uniqueFeatures > 3 ? 1 : 0;
-  }
-
-  // Development approach impact
-  if (project.priority === 'quality') score += 1;
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculateBugScore(project) {
-  let score = 8; // Base score
-
-  // Factor in bug counts and severity
-  if (project.bugs > 0) {
-    const severity = project.testingMetrics?.bugSeverity || {
-      critical: Math.floor(project.bugs * 0.2),
-      major: Math.floor(project.bugs * 0.3),
-      minor: Math.ceil(project.bugs * 0.5)
-    };
-    
-    score -= (severity.critical * 1.5 + severity.major * 0.8 + severity.minor * 0.3);
-  }
-
-  // Consider testing thoroughness
-  if (project.testingMetrics?.testsConducted) {
-    const completedTests = Object.values(project.testingMetrics.testsConducted)
-      .filter(Boolean).length;
-    score += completedTests * 0.5;
-  }
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculatePerformanceScore(project) {
-  let score = 7; // Base score
-
-  // Consider optimization focus
-  if (project.optimizationFocus === 'performance') score += 2;
-
-  // Factor in technical quality
-  if (project.metrics?.technical?.performance) {
-    score += (project.metrics.technical.performance / 20);
-  }
-
-  // Development priority impact
-  if (project.priority === 'quality') score += 1;
-  if (project.priority === 'speed') score -= 1;
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculatePolishScore(project) {
-  let score = 7; // Base score
-
-  // Polish phase impact
-  if (project.optimizationFocus === 'polish') score += 2;
-
-  // Consider development time
-  if (project.developmentTime < project.estimatedCompletionWeeks) {
-    score -= 2;
-  } else if (project.developmentTime > project.estimatedCompletionWeeks * 1.2) {
-    score += 1;
-  }
-
-  // Quality focus impact
-  if (project.priority === 'quality') score += 1;
-  if (project.priority === 'speed') score -= 1;
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculateFunScore(project) {
-  let score = 7; // Base score
-
-  // Factor in playtest results
-  if (project.testingMetrics?.playtestScore) {
-    score += (project.testingMetrics.playtestScore - 70) / 10;
-  }
-
-  // Consider feature variety
-  if (project.planningData?.features) {
-    const uniqueTypes = new Set(project.planningData.features.map(f => f.type)).size;
-    score += uniqueTypes > 3 ? 1 : 0;
-  }
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculateEngagementScore(project) {
-  let score = 7; // Base score
-
-  // Factor in gameplay elements
-  if (project.elements?.length > 0) {
-    score += project.elements.length * 0.5;
-  }
-
-  // Consider targeting effectiveness
-  if (project.targetAudience && project.marketingStrategy) {
-    if (project.targetAudience === project.marketingStrategy) {
-      score += 1;
-    }
-  }
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function calculateReplayabilityScore(project) {
-  let score = 6; // Base score
-
-  // Consider feature variety
-  if (project.planningData?.features) {
-    const uniqueFeatures = new Set(project.planningData.features.map(f => f.type)).size;
-    score += uniqueFeatures > 3 ? 2 : 1;
-  }
-
-  // Genre impact
-  if (project.genre === 'rpg' || project.genre === 'simulation') {
-    score += 1;
-  }
-
-  return Math.min(10, Math.max(1, Math.round(score)));
-}
-
-function displayDetailedScores(project) {
-  const scores = calculateDetailedScores(project);
-
-  outputToDisplay("\n=== Detailed Game Evaluation ===");
-
-  // Game Design Category
-  outputToDisplay("\nGame Design: " + scores.gameDesign + "/10");
-  outputToDisplay(`- Gameplay: ${calculateGameplayScore(project)}/10`);
-  outputToDisplay(`- Features: ${calculateFeatureScore(project)}/10`);
-  outputToDisplay(`- Innovation: ${calculateInnovationScore(project)}/10`);
-
-  // Technical Quality Category
-  outputToDisplay("\nTechnical Quality: " + scores.technicalQuality + "/10");
-  outputToDisplay(`- Bug Status: ${calculateBugScore(project)}/10`);
-  outputToDisplay(`- Performance: ${calculatePerformanceScore(project)}/10`);
-  outputToDisplay(`- Polish: ${calculatePolishScore(project)}/10`);
-
-  // Player Experience Category
-  outputToDisplay("\nPlayer Experience: " + scores.playerExperience + "/10");
-  outputToDisplay(`- Fun Factor: ${calculateFunScore(project)}/10`);
-  outputToDisplay(`- Engagement: ${calculateEngagementScore(project)}/10`);
-  outputToDisplay(`- Replayability: ${calculateReplayabilityScore(project)}/10`);
-
-  outputToDisplay(`\nOverall Score: ${scores.overall}/10`);
-
-  // Display score analysis
-  outputToDisplay("\nAnalysis:");
-  displayScoreAnalysis(scores);
-}
-
-function displayScoreAnalysis(scores) {
-  // Identify strengths
-  const strengths = [];
-  if (scores.gameDesign >= 8) strengths.push("Strong game design");
-  if (scores.technicalQuality >= 8) strengths.push("High technical quality");
-  if (scores.playerExperience >= 8) strengths.push("Excellent player experience");
-
-  // Identify weaknesses
-  const weaknesses = [];
-  if (scores.gameDesign <= 6) weaknesses.push("Game design needs improvement");
-  if (scores.technicalQuality <= 6) weaknesses.push("Technical issues present");
-  if (scores.playerExperience <= 6) weaknesses.push("Player experience could be better");
-
-  // Display findings
-  if (strengths.length > 0) {
-    outputToDisplay("\nStrengths:");
-    strengths.forEach(strength => outputToDisplay(`+ ${strength}`));
-  }
-
-  if (weaknesses.length > 0) {
-    outputToDisplay("\nAreas for Improvement:");
-    weaknesses.forEach(weakness => outputToDisplay(`- ${weakness}`));
-  }
-}
-
-// Add new categories to validation system
-function validateGameMetrics(project) {
-  if (!project.metrics) {
-    project.metrics = {
-      gameDesign: {},
-      technicalQuality: {},
-      playerExperience: {}
-    };
-  }
-
-  Object.keys(SCORING_CATEGORIES).forEach(category => {
-    if (!project.metrics[category]) {
-      project.metrics[category] = {};
-    }
-  });
-
-  return true;
-}
-
-// Export new functions
-window.compileFinalScore = compileFinalScore;
-window.displayFinalScore = displayFinalScore;
-
-function calculateAudienceReception(successScore, project, gameState) {
-  // Initialize base reception
-  const reception = {
-    casual: 0,
-    hardcore: 0,
-    critics: 0
-  };
-
-  // Validate required inputs
-  if (!project || typeof successScore !== 'number') {
-    console.warn('Invalid input for reception calculation:', { project, successScore });
-    return reception;
-  }
-
-  // Define default preferences map for fallback
-  const DEFAULT_PREFERENCES = {
-    casual: {
-      puzzle: 1.2, rpg: 0.7, action: 0.8, adventure: 0.9, simulation: 1.1,
-      sports: 1.0, fighting: 0.6, survival: 0.7, racing: 0.9, horror: 0.5,
-      idle: 1.2
-    },
-    hardcore: {
-      puzzle: 0.7, rpg: 1.5, action: 1.3, adventure: 1.0, simulation: 0.8,
-      sports: 0.9, fighting: 1.3, survival: 1.2, racing: 1.1, horror: 1.2,
-      idle: 0.6
-    },
-    critics: {
-      puzzle: 0.9, rpg: 1.2, action: 1.1, adventure: 1.3, simulation: 1.0,
-      sports: 0.9, fighting: 1.0, survival: 1.0, racing: 1.1, horror: 1.2,
-      idle: 0.8
-    },
-    all: {
-      puzzle: 1.0, rpg: 1.0, action: 1.0, adventure: 1.0, simulation: 1.0,
-      sports: 1.0, fighting: 1.0, survival: 1.0, racing: 1.0, horror: 1.0,
-      idle: 1.0
-    }
-  };
-
-  try {
-    // Set default target audience if not specified
-    const targetAudience = project.targetAudience || 'all';
-    const genre = (project.genre || 'puzzle').toLowerCase();
-
-    // Get genre multiplier with robust fallback chain
-    let genreMultiplier = 1.0;
-    
-    // First try to get from AUDIENCE_SEGMENTS if available
-    if (window.AUDIENCE_SEGMENTS && 
-        window.AUDIENCE_SEGMENTS[targetAudience] && 
-        window.AUDIENCE_SEGMENTS[targetAudience].preferences) {
-      genreMultiplier = window.AUDIENCE_SEGMENTS[targetAudience].preferences[genre] || 1.0;
-    } else {
-      // Fallback to default preferences
-      genreMultiplier = DEFAULT_PREFERENCES[targetAudience]?.[genre] || 
-                       DEFAULT_PREFERENCES.all[genre] || 
-                       1.0;
-    }
-
-    // Calculate base reception score with safe defaults
-    const baseScore = Math.min(100, Math.max(0, successScore * 0.8));
-
-    // Apply marketing strategy modifiers
-    switch(project.marketingStrategy || 'balanced') {
-      case 'casual':
-        reception.casual = Math.min(100, baseScore * 1.2 * genreMultiplier);
-        reception.hardcore = Math.min(100, baseScore * 0.8 * genreMultiplier);
-        reception.critics = Math.min(100, baseScore * 0.9 * genreMultiplier);
-        break;
-      case 'hardcore':
-        reception.casual = Math.min(100, baseScore * 0.8 * genreMultiplier);
-        reception.hardcore = Math.min(100, baseScore * 1.2 * genreMultiplier);
-        reception.critics = Math.min(100, baseScore * 1.1 * genreMultiplier);
-        break;
-      default: // balanced
-        reception.casual = Math.min(100, baseScore * genreMultiplier);
-        reception.hardcore = Math.min(100, baseScore * genreMultiplier);
-        reception.critics = Math.min(100, baseScore * genreMultiplier);
-    }
-
-    // Apply reputation effects with safety checks
-    if (gameState?.reputation) {
-      Object.keys(reception).forEach(audience => {
-        if (gameState.reputation[audience]) {
-          const loyalty = gameState.reputation[audience].loyalty || 0.5;
-          reception[audience] *= (0.9 + (loyalty * 0.2));
-          reception[audience] = Math.min(100, Math.round(reception[audience]));
-        }
-      });
-    }
-
-    // Log calculation debug info
-    console.log('Reception calculation:', {
-      targetAudience,
-      genre,
-      genreMultiplier,
-      baseScore,
-      strategy: project.marketingStrategy,
-      finalReception: reception
-    });
-
-  } catch (error) {
-    console.error('Error calculating audience reception:', error);
-    // Return safe default values
-    Object.keys(reception).forEach(key => {
-      reception[key] = Math.round(successScore * 0.8);
-    });
-  }
-
-  // Ensure all values are numbers and within bounds
-  Object.keys(reception).forEach(key => {
-    reception[key] = Math.min(100, Math.max(0, Math.round(reception[key] || 0)));
-  });
-
-  return reception;
-}
+// Make sure calculateQualityGain is available globally
+window.calculateQualityGain = calculateQualityGain;
